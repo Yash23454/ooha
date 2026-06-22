@@ -1,3 +1,20 @@
+// --- FIREBASE IMPORTS ---
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyDQDSY9yFWOJ3MFl7_GefbzJQgyskvlBa8",
+    authDomain: "ooha-d3576.firebaseapp.com",
+    projectId: "ooha-d3576",
+    storageBucket: "ooha-d3576.firebasestorage.app",
+    messagingSenderId: "938771332786",
+    appId: "1:938771332786:web:9dd69f81fca6eaa99093ab",
+    measurementId: "G-RQJCZBZ9N8"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
 // --- DOM ELEMENTS ---
 const leaveOohaBtn = document.getElementById('leave-ooha-btn');
 const closeModalBtn = document.getElementById('close-modal');
@@ -6,7 +23,6 @@ const submitOohaBtn = document.getElementById('submit-ooha-btn');
 const lookupBtn = document.getElementById('lookup-btn');
 const resultsSection = document.getElementById('results-section');
 
-// Helper function to remove special characters/accents
 function removeAccents(str) {
     return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
@@ -19,97 +35,80 @@ leaveOohaBtn.addEventListener('click', () => {
 });
 closeModalBtn.addEventListener('click', () => modal.classList.add('hidden'));
 
-submitOohaBtn.addEventListener('click', () => {
-    if(document.getElementById('target-name').value.trim() === '' || document.getElementById('ooha-text').value.trim() === '') {
-        alert("Name and your 'Ooha' are required!");
+submitOohaBtn.addEventListener('click', async () => {
+    const targetName = document.getElementById('target-name').value.trim().toLowerCase();
+    const oohaText = document.getElementById('ooha-text').value.trim();
+    const city = document.getElementById('modal-city').value.trim().toLowerCase();
+
+    if (!targetName || !oohaText || !city) {
+        alert("Please fill all details!");
         return;
     }
-    
-    document.getElementById('modal-form-area').classList.add('hidden');
-    document.getElementById('success-message').classList.remove('hidden');
-    
-    setTimeout(() => {
-        modal.classList.add('hidden');
+
+    try {
+        await addDoc(collection(db, "oohas"), {
+            name: targetName,
+            city: city,
+            message: oohaText,
+            timestamp: new Date()
+        });
         
-        document.getElementById('target-name').value = '';
-        document.getElementById('ooha-text').value = '';
+        document.getElementById('modal-form-area').classList.add('hidden');
+        document.getElementById('success-message').classList.remove('hidden');
         
-        const mCountry = document.getElementById('modal-country');
-        if(mCountry) mCountry.value = '';
-        
-        const mState = document.getElementById('modal-state');
-        if(mState) {
-            mState.value = '';
-            mState.disabled = true;
-            mState.placeholder = "Select Country First...";
-        }
-        
-        const mCity = document.getElementById('modal-city');
-        if(mCity) {
-            mCity.value = '';
-            mCity.disabled = true;
-            mCity.placeholder = "Select State First...";
-        }
-        
-        document.getElementById('modal-form-area').classList.remove('hidden');
-        document.getElementById('success-message').classList.add('hidden');
-    }, 3000);
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            document.getElementById('target-name').value = '';
+            document.getElementById('ooha-text').value = '';
+            document.getElementById('modal-country').value = '';
+            document.getElementById('modal-state').value = '';
+            document.getElementById('modal-city').value = '';
+            document.getElementById('modal-form-area').classList.remove('hidden');
+            document.getElementById('success-message').classList.add('hidden');
+        }, 2000);
+    } catch (e) {
+        console.error("Error adding document: ", e);
+    }
 });
 
-// --- REVEAL "OOHA" DUMMY LOGIC (Provocative) ---
-lookupBtn.addEventListener('click', () => {
+// --- LOOKUP OOHA FROM FIRESTORE ---
+lookupBtn.addEventListener('click', async () => {
     const nameInput = document.getElementById('search-name');
     const name = nameInput.value.trim().toLowerCase();
+    const city = document.getElementById('city-input').value.trim().toLowerCase();
     
-    if(!name) {
-        alert("Enter a name to reveal their secrets!");
+    if (!name || !city) {
+        alert("Enter Name and City!");
         return;
     }
 
-    lookupBtn.innerText = "Searching the whispers...";
+    lookupBtn.innerText = "Searching...";
     resultsSection.innerHTML = "";
-
-    setTimeout(() => {
+    
+    try {
+        const q = query(collection(db, "oohas"), where("name", "==", name), where("city", "==", city));
+        const querySnapshot = await getDocs(q);
+        
         lookupBtn.innerText = "Reveal \"Ooha\"";
         
-        if(name === 'yash') {
-            resultsSection.innerHTML = `
-                <div class="ooha-card" style="background: var(--card-bg); padding: 20px; border-left: 3px solid var(--gold-primary); border-radius: 8px; margin-top: 20px; text-align: left;">
-                    <p style="color: #ccc; font-style: italic;">"He's secretly a genius when it comes to network routing... and he has a great taste in web design."</p>
-                    <small style="color: var(--text-muted); display: block; margin-top: 10px;">- Left from somewhere in the world</small>
-                </div>
-            `;
+        if (querySnapshot.empty) {
+            resultsSection.innerHTML = `<p class="provocative-msg">No "Ooha" found for ${name} in ${city}.</p>`;
         } else {
-            resultsSection.innerHTML = `
-                <div class="provocative-msg" style="margin-top: 20px;">
-                    <p>Looks like your board is completely silent.</p>
-                    <p style="margin-top: 10px; font-size: 1.1rem;">No one is talking about you... <span class="highlight-text">yet.</span></p>
-                    <p style="margin-top: 10px;">Share your link and let the secrets out! People only talk when they know where to drop the "Ooha".</p>
-                </div>
-            `;
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                resultsSection.innerHTML += `<div class="ooha-card"><p>"${data.message}"</p></div>`;
+            });
         }
-
-        // FORCE CLEAR MAIN SEARCH INPUTS
+        
+        // Reset Search Fields
         nameInput.value = '';
-        
-        const cInput = document.getElementById('country-input');
-        if(cInput) cInput.value = '';
-        
-        const sInput = document.getElementById('state-input');
-        if(sInput) {
-            sInput.value = '';
-            sInput.disabled = true;
-            sInput.placeholder = "Select Country First...";
-        }
-        
-        const cityInp = document.getElementById('city-input');
-        if(cityInp) {
-            cityInp.value = '';
-            cityInp.disabled = true;
-            cityInp.placeholder = "Select State First...";
-        }
-
-    }, 1500); 
+        document.getElementById('country-input').value = '';
+        document.getElementById('state-input').value = '';
+        document.getElementById('city-input').value = '';
+    } catch (e) {
+        console.error(e);
+        resultsSection.innerHTML = "Error fetching data.";
+    }
 });
 
 // --- CUSTOM AUTOCOMPLETE DROPDOWN LOGIC ---
@@ -118,7 +117,6 @@ const apiBase = "https://countriesnow.space/api/v0.1/countries";
 function setupAutocomplete(inputId, listId, dataArray, onSelectCallback) {
     const input = document.getElementById(inputId);
     const list = document.getElementById(listId);
-
     const newInput = input.cloneNode(true);
     input.parentNode.replaceChild(newInput, input);
 
@@ -126,9 +124,7 @@ function setupAutocomplete(inputId, listId, dataArray, onSelectCallback) {
         list.innerHTML = '';
         const val = this.value;
         if (!val) { list.style.display = 'none'; return; }
-
         const matches = dataArray.filter(item => item.toLowerCase().includes(val.toLowerCase())).slice(0, 100);
-        
         if(matches.length > 0) {
             list.style.display = 'block';
             matches.forEach(match => {
@@ -141,128 +137,37 @@ function setupAutocomplete(inputId, listId, dataArray, onSelectCallback) {
                 });
                 list.appendChild(div);
             });
-        } else {
-            list.style.display = 'none';
-        }
-    });
-
-    newInput.addEventListener('focus', function() {
-        if(dataArray.length > 0 && !this.value) {
-            list.innerHTML = '';
-            list.style.display = 'block';
-            dataArray.slice(0, 100).forEach(match => {
-                let div = document.createElement('div');
-                div.innerHTML = match;
-                div.addEventListener('click', () => {
-                    newInput.value = match;
-                    list.style.display = 'none';
-                    if(onSelectCallback) onSelectCallback(match);
-                });
-                list.appendChild(div);
-            });
-        }
+        } else { list.style.display = 'none'; }
     });
 }
 
-document.addEventListener('click', function (e) {
-    document.querySelectorAll('.autocomplete-list').forEach(list => {
-        if (!list.parentNode.contains(e.target)) {
-            list.style.display = 'none';
-        }
-    });
-});
-
-// --- FETCH LOCATIONS (Main Search & Modal) ---
-let globalCountries = [];
-
+// --- FETCH LOCATIONS ---
 async function loadCountries() {
-    document.getElementById('country-input').placeholder = "Loading...";
-    document.getElementById('modal-country').placeholder = "Loading...";
-    
     try {
         const res = await fetch(apiBase);
-        if (!res.ok) throw new Error("API Server Down");
         const data = await res.json();
-        globalCountries = data.data.map(item => removeAccents(item.country));
-    } catch (e) {
-        console.error("Live API failed, loading backup data:", e);
-        globalCountries = [
-            "India", "United States", "United Kingdom", "Australia", 
-            "Canada", "Germany", "United Arab Emirates", "Singapore", "New Zealand"
-        ];
-    }
-
-    document.getElementById('country-input').placeholder = "Type Country...";
-    document.getElementById('modal-country').placeholder = "Type Country...";
-
-    setupAutocomplete('country-input', 'country-list', globalCountries, (selected) => {
-        loadStates(selected, 'state-input', 'state-list', 'city-input', 'city-list');
-    });
-
-    setupAutocomplete('modal-country', 'modal-country-list', globalCountries, (selected) => {
-        loadStates(selected, 'modal-state', 'modal-state-list', 'modal-city', 'modal-city-list');
-    });
+        const countries = data.data.map(item => removeAccents(item.country));
+        setupAutocomplete('country-input', 'country-list', countries, (s) => loadStates(s, 'state-input', 'state-list', 'city-input', 'city-list'));
+        setupAutocomplete('modal-country', 'modal-country-list', countries, (s) => loadStates(s, 'modal-state', 'modal-state-list', 'modal-city', 'modal-city-list'));
+    } catch (e) { console.error(e); }
 }
 
-async function loadStates(country, stateInputId, stateListId, childCityInputId, childCityListId) {
-    const stateInput = document.getElementById(stateInputId);
-    const cityInput = document.getElementById(childCityInputId);
-    
+async function loadStates(country, stateId, stateList, cityId, cityList) {
+    const stateInput = document.getElementById(stateId);
     stateInput.disabled = false;
-    stateInput.value = '';
-    stateInput.placeholder = "Loading States...";
-    cityInput.disabled = true;
-    cityInput.value = '';
-
-    try {
-        const res = await fetch(`${apiBase}/states`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ country: country })
-        });
-        if (!res.ok) throw new Error("States API failed");
-        const data = await res.json();
-        
-        const states = data.data && data.data.states ? data.data.states.map(s => removeAccents(s.name)) : [];
-        stateInput.placeholder = states.length ? "Type State..." : "No states found";
-        
-        setupAutocomplete(stateInputId, stateListId, states, (selected) => {
-            loadCities(country, selected, childCityInputId, childCityListId);
-        });
-    } catch (e) { 
-        console.error(e);
-        stateInput.placeholder = "Type State Manually...";
-        setupAutocomplete(stateInputId, stateListId, [], () => {
-            cityInput.disabled = false;
-            cityInput.placeholder = "Type City Manually...";
-        });
-    }
+    const res = await fetch(`${apiBase}/states`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({country})});
+    const data = await res.json();
+    const states = data.data.states.map(s => removeAccents(s.name));
+    setupAutocomplete(stateId, stateList, states, (s) => loadCities(country, s, cityId, cityList));
 }
 
-async function loadCities(country, state, cityInputId, cityListId) {
-    const cityInput = document.getElementById(cityInputId);
+async function loadCities(country, state, cityId, cityList) {
+    const cityInput = document.getElementById(cityId);
     cityInput.disabled = false;
-    cityInput.value = '';
-    cityInput.placeholder = "Loading Cities...";
-
-    try {
-        const res = await fetch(`${apiBase}/state/cities`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ country: country, state: state })
-        });
-        if (!res.ok) throw new Error("Cities API failed");
-        const data = await res.json();
-        
-        const cities = data.data ? data.data.map(c => removeAccents(c)) : [];
-        cityInput.placeholder = cities.length ? "Type City..." : "No cities found";
-        
-        setupAutocomplete(cityInputId, cityListId, cities);
-    } catch (e) { 
-        console.error(e);
-        cityInput.placeholder = "Type City Manually...";
-        setupAutocomplete(cityInputId, cityListId, []);
-    }
+    const res = await fetch(`${apiBase}/state/cities`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({country, state})});
+    const data = await res.json();
+    const cities = data.data.map(c => removeAccents(c));
+    setupAutocomplete(cityId, cityList, cities);
 }
 
 loadCountries();
