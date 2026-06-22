@@ -6,6 +6,11 @@ const submitOohaBtn = document.getElementById('submit-ooha-btn');
 const lookupBtn = document.getElementById('lookup-btn');
 const resultsSection = document.getElementById('results-section');
 
+// Helper function to remove special characters/accents (e.g., Tādepalle -> Tadepalle)
+function removeAccents(str) {
+    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
 // --- MODAL LOGIC & SUCCESS ACKNOWLEDGEMENT ---
 leaveOohaBtn.addEventListener('click', () => {
     document.getElementById('modal-form-area').classList.remove('hidden');
@@ -20,22 +25,26 @@ submitOohaBtn.addEventListener('click', () => {
         alert("Name and your 'Ooha' are required!");
         return;
     }
-    // Show nice acknowledgement
+    // Show nice acknowledgement (Hides form, shows success text)
     document.getElementById('modal-form-area').classList.add('hidden');
     document.getElementById('success-message').classList.remove('hidden');
     
-    // Auto-close modal after 3 seconds
+    // Auto-close modal after 3 seconds and reset
     setTimeout(() => {
         modal.classList.add('hidden');
         document.getElementById('target-name').value = '';
         document.getElementById('ooha-text').value = '';
+        document.getElementById('modal-country').value = '';
+        document.getElementById('modal-state').value = '';
+        document.getElementById('modal-city').value = '';
+        document.getElementById('modal-state').disabled = true;
+        document.getElementById('modal-city').disabled = true;
     }, 3000);
 });
 
 // --- REVEAL "OOHA" DUMMY LOGIC (Provocative) ---
 lookupBtn.addEventListener('click', () => {
     const name = document.getElementById('search-name').value.trim().toLowerCase();
-    const city = document.getElementById('city-input').value.trim().toLowerCase();
     
     if(!name) {
         alert("Enter a name to reveal their secrets!");
@@ -66,18 +75,16 @@ lookupBtn.addEventListener('click', () => {
                 </div>
             `;
         }
-    }, 1500); // Fake delay for dramatic effect
+    }, 1500); 
 });
 
 // --- CUSTOM AUTOCOMPLETE DROPDOWN LOGIC ---
 const apiBase = "https://countriesnow.space/api/v0.1/countries";
 
-// Reusable function to handle custom dropdowns
 function setupAutocomplete(inputId, listId, dataArray, onSelectCallback) {
     const input = document.getElementById(inputId);
     const list = document.getElementById(listId);
 
-    // Clear previous event listeners by cloning
     const newInput = input.cloneNode(true);
     input.parentNode.replaceChild(newInput, input);
 
@@ -105,7 +112,6 @@ function setupAutocomplete(inputId, listId, dataArray, onSelectCallback) {
         }
     });
 
-    // Show all options when focused
     newInput.addEventListener('focus', function() {
         if(dataArray.length > 0 && !this.value) {
             list.innerHTML = '';
@@ -124,7 +130,6 @@ function setupAutocomplete(inputId, listId, dataArray, onSelectCallback) {
     });
 }
 
-// Close dropdowns when clicking outside
 document.addEventListener('click', function (e) {
     document.querySelectorAll('.autocomplete-list').forEach(list => {
         if (!list.parentNode.contains(e.target)) {
@@ -144,10 +149,10 @@ async function loadCountries() {
         const res = await fetch(apiBase);
         if (!res.ok) throw new Error("API Server Down");
         const data = await res.json();
-        globalCountries = data.data.map(item => item.country);
+        // Applied removeAccents here
+        globalCountries = data.data.map(item => removeAccents(item.country));
     } catch (e) {
         console.error("Live API failed, loading backup data:", e);
-        // Fallback safety net
         globalCountries = [
             "India", "United States", "United Kingdom", "Australia", 
             "Canada", "Germany", "United Arab Emirates", "Singapore", "New Zealand"
@@ -157,7 +162,6 @@ async function loadCountries() {
     document.getElementById('country-input').placeholder = "Type Country...";
     document.getElementById('modal-country').placeholder = "Type Country...";
 
-    // FIX: Properly passing both Input ID and List ID for cities
     setupAutocomplete('country-input', 'country-list', globalCountries, (selected) => {
         loadStates(selected, 'state-input', 'state-list', 'city-input', 'city-list');
     });
@@ -186,7 +190,8 @@ async function loadStates(country, stateInputId, stateListId, childCityInputId, 
         if (!res.ok) throw new Error("States API failed");
         const data = await res.json();
         
-        const states = data.data && data.data.states ? data.data.states.map(s => s.name) : [];
+        // Applied removeAccents here
+        const states = data.data && data.data.states ? data.data.states.map(s => removeAccents(s.name)) : [];
         stateInput.placeholder = states.length ? "Type State..." : "No states found";
         
         setupAutocomplete(stateInputId, stateListId, states, (selected) => {
@@ -217,7 +222,8 @@ async function loadCities(country, state, cityInputId, cityListId) {
         if (!res.ok) throw new Error("Cities API failed");
         const data = await res.json();
         
-        const cities = data.data || [];
+        // Applied removeAccents here
+        const cities = data.data ? data.data.map(c => removeAccents(c)) : [];
         cityInput.placeholder = cities.length ? "Type City..." : "No cities found";
         
         setupAutocomplete(cityInputId, cityListId, cities);
@@ -228,5 +234,4 @@ async function loadCities(country, state, cityInputId, cityListId) {
     }
 }
 
-// Initialize the app by fetching countries
 loadCountries();
