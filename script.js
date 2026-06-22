@@ -1,128 +1,211 @@
-// --- MODAL LOGIC ---
+// --- DOM ELEMENTS ---
 const leaveOohaBtn = document.getElementById('leave-ooha-btn');
 const closeModalBtn = document.getElementById('close-modal');
 const modal = document.getElementById('ooha-modal');
+const submitOohaBtn = document.getElementById('submit-ooha-btn');
+const lookupBtn = document.getElementById('lookup-btn');
+const resultsSection = document.getElementById('results-section');
 
-leaveOohaBtn.addEventListener('click', () => modal.classList.remove('hidden'));
+// --- MODAL LOGIC & SUCCESS ACKNOWLEDGEMENT ---
+leaveOohaBtn.addEventListener('click', () => {
+    document.getElementById('modal-form-area').classList.remove('hidden');
+    document.getElementById('success-message').classList.add('hidden');
+    modal.classList.remove('hidden');
+});
 closeModalBtn.addEventListener('click', () => modal.classList.add('hidden'));
-window.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('hidden'); });
 
-// --- LIVE LOCATION API LOGIC ---
+submitOohaBtn.addEventListener('click', () => {
+    // Basic validation
+    if(document.getElementById('target-name').value.trim() === '' || document.getElementById('ooha-text').value.trim() === '') {
+        alert("Name and your 'Ooha' are required!");
+        return;
+    }
+    // Show nice acknowledgement
+    document.getElementById('modal-form-area').classList.add('hidden');
+    document.getElementById('success-message').classList.remove('hidden');
+    
+    // Auto-close modal after 3 seconds
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        document.getElementById('target-name').value = '';
+        document.getElementById('ooha-text').value = '';
+    }, 3000);
+});
 
-// Inputs & Datalists
-const countryInput = document.getElementById('country-input');
-const stateInput = document.getElementById('state-input');
-const cityInput = document.getElementById('city-input');
+// --- REVEAL "OOHA" DUMMY LOGIC (Provocative) ---
+lookupBtn.addEventListener('click', () => {
+    const name = document.getElementById('search-name').value.trim().toLowerCase();
+    const city = document.getElementById('city-input').value.trim().toLowerCase();
+    
+    if(!name) {
+        alert("Enter a name to reveal their secrets!");
+        return;
+    }
 
-const countriesList = document.getElementById('countries');
-const statesList = document.getElementById('states');
-const citiesList = document.getElementById('cities');
+    lookupBtn.innerText = "Searching the whispers...";
+    resultsSection.innerHTML = "";
 
-// Base API URL
+    setTimeout(() => {
+        lookupBtn.innerText = "Reveal \"Ooha\"";
+        
+        // Dummy data check 
+        if(name === 'yash' && (city === 'iowa city' || city === '')) {
+            resultsSection.innerHTML = `
+                <div class="ooha-card" style="background: var(--card-bg); padding: 20px; border-left: 3px solid var(--gold-primary); border-radius: 8px; margin-top: 20px; text-align: left;">
+                    <p style="color: #ccc; font-style: italic;">"He's secretly a genius when it comes to network routing... and he has a great taste in web design."</p>
+                    <small style="color: var(--text-muted); display: block; margin-top: 10px;">- Left from somewhere in the US</small>
+                </div>
+            `;
+        } else {
+            // Provocative Empty State
+            resultsSection.innerHTML = `
+                <div class="provocative-msg" style="margin-top: 20px;">
+                    <p>Looks like your board is completely silent.</p>
+                    <p style="margin-top: 10px; font-size: 1.1rem;">No one is talking about you... <span class="highlight-text">yet.</span></p>
+                    <p style="margin-top: 10px;">Share your link and let the secrets out! People only talk when they know where to drop the "Ooha".</p>
+                </div>
+            `;
+        }
+    }, 1500); // Fake delay for dramatic effect
+});
+
+// --- CUSTOM AUTOCOMPLETE DROPDOWN LOGIC ---
 const apiBase = "https://countriesnow.space/api/v0.1/countries";
 
-// 1. Fetch Countries on Page Load
+// Reusable function to handle custom dropdowns
+function setupAutocomplete(inputId, listId, dataArray, onSelectCallback) {
+    const input = document.getElementById(inputId);
+    const list = document.getElementById(listId);
+
+    // Clear previous event listeners by cloning
+    const newInput = input.cloneNode(true);
+    input.parentNode.replaceChild(newInput, input);
+
+    newInput.addEventListener('input', function() {
+        list.innerHTML = '';
+        const val = this.value;
+        if (!val) { list.style.display = 'none'; return; }
+
+        const matches = dataArray.filter(item => item.toLowerCase().includes(val.toLowerCase())).slice(0, 100);
+        
+        if(matches.length > 0) {
+            list.style.display = 'block';
+            matches.forEach(match => {
+                let div = document.createElement('div');
+                div.innerHTML = match;
+                div.addEventListener('click', () => {
+                    newInput.value = match;
+                    list.style.display = 'none';
+                    if(onSelectCallback) onSelectCallback(match);
+                });
+                list.appendChild(div);
+            });
+        } else {
+            list.style.display = 'none';
+        }
+    });
+
+    // Show all options when focused
+    newInput.addEventListener('focus', function() {
+        if(dataArray.length > 0 && !this.value) {
+            list.innerHTML = '';
+            list.style.display = 'block';
+            dataArray.slice(0, 100).forEach(match => {
+                let div = document.createElement('div');
+                div.innerHTML = match;
+                div.addEventListener('click', () => {
+                    newInput.value = match;
+                    list.style.display = 'none';
+                    if(onSelectCallback) onSelectCallback(match);
+                });
+                list.appendChild(div);
+            });
+        }
+    });
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function (e) {
+    document.querySelectorAll('.autocomplete-list').forEach(list => {
+        if (!list.parentNode.contains(e.target)) {
+            list.style.display = 'none';
+        }
+    });
+});
+
+// --- FETCH LOCATIONS (Main Search & Modal) ---
+let globalCountries = [];
+
 async function loadCountries() {
     try {
-        countryInput.placeholder = "Loading Countries...";
-        const response = await fetch(apiBase);
-        const result = await response.json();
+        const res = await fetch(apiBase);
+        const data = await res.json();
+        globalCountries = data.data.map(item => item.country);
         
-        if (!result.error) {
-            result.data.forEach(item => {
-                let option = document.createElement('option');
-                option.value = item.country;
-                countriesList.appendChild(option);
-            });
-            countryInput.placeholder = "Type or Select Country...";
-        }
-    } catch (error) {
-        console.error("Error loading countries:", error);
-        countryInput.placeholder = "Failed to load locations";
+        document.getElementById('country-input').placeholder = "Type Country...";
+        document.getElementById('modal-country').placeholder = "Type Country...";
+
+        // Setup Main Search Country
+        setupAutocomplete('country-input', 'country-list', globalCountries, (selected) => {
+            loadStates(selected, 'state-input', 'state-list', 'city-input');
+        });
+
+        // Setup Modal Country
+        setupAutocomplete('modal-country', 'modal-country-list', globalCountries, (selected) => {
+            loadStates(selected, 'modal-state', 'modal-state-list', 'modal-city');
+        });
+
+    } catch (e) {
+        console.error(e);
     }
 }
 
-// 2. Fetch States when Country is selected
-countryInput.addEventListener('change', async () => {
-    const selectedCountry = countryInput.value;
+async function loadStates(country, stateInputId, stateListId, childCityInputId) {
+    const stateInput = document.getElementById(stateInputId);
+    const cityInput = document.getElementById(childCityInputId);
     
-    // Clear lower dropdowns
-    statesList.innerHTML = '';
+    stateInput.disabled = false;
     stateInput.value = '';
-    citiesList.innerHTML = '';
-    cityInput.value = '';
+    stateInput.placeholder = "Loading States...";
     cityInput.disabled = true;
-
-    if (selectedCountry) {
-        stateInput.disabled = false;
-        stateInput.placeholder = "Loading States...";
-        
-        try {
-            const response = await fetch(`${apiBase}/states`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ country: selectedCountry })
-            });
-            const result = await response.json();
-            
-            if (!result.error && result.data.states) {
-                result.data.states.forEach(state => {
-                    let option = document.createElement('option');
-                    option.value = state.name;
-                    statesList.appendChild(option);
-                });
-                stateInput.placeholder = "Type or Select State...";
-            } else {
-                stateInput.placeholder = "No states found";
-            }
-        } catch (error) {
-            console.error("Error loading states:", error);
-            stateInput.placeholder = "Error loading states";
-        }
-    } else {
-        stateInput.disabled = true;
-    }
-});
-
-// 3. Fetch Cities/Towns when State is selected
-stateInput.addEventListener('change', async () => {
-    const selectedCountry = countryInput.value;
-    const selectedState = stateInput.value;
-    
-    // Clear lower dropdown
-    citiesList.innerHTML = '';
     cityInput.value = '';
 
-    if (selectedState) {
-        cityInput.disabled = false;
-        cityInput.placeholder = "Loading Cities...";
+    try {
+        const res = await fetch(`${apiBase}/states`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ country: country })
+        });
+        const data = await res.json();
         
-        try {
-            const response = await fetch(`${apiBase}/state/cities`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ country: selectedCountry, state: selectedState })
-            });
-            const result = await response.json();
-            
-            if (!result.error && result.data) {
-                result.data.forEach(city => {
-                    let option = document.createElement('option');
-                    option.value = city;
-                    citiesList.appendChild(option);
-                });
-                cityInput.placeholder = "Type or Select City/Town...";
-            } else {
-                cityInput.placeholder = "No cities found";
-            }
-        } catch (error) {
-            console.error("Error loading cities:", error);
-            cityInput.placeholder = "Error loading cities";
-        }
-    } else {
-        cityInput.disabled = true;
-    }
-});
+        const states = data.data && data.data.states ? data.data.states.map(s => s.name) : [];
+        stateInput.placeholder = states.length ? "Type State..." : "No states found";
+        
+        setupAutocomplete(stateInputId, stateListId, states, (selected) => {
+            loadCities(country, selected, childCityInputId, childCityInputId.replace('-input', '-list'));
+        });
+    } catch (e) { console.error(e); }
+}
 
-// Initialize the app by fetching countries
+async function loadCities(country, state, cityInputId, cityListId) {
+    const cityInput = document.getElementById(cityInputId);
+    cityInput.disabled = false;
+    cityInput.value = '';
+    cityInput.placeholder = "Loading Cities...";
+
+    try {
+        const res = await fetch(`${apiBase}/state/cities`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ country: country, state: state })
+        });
+        const data = await res.json();
+        
+        const cities = data.data || [];
+        cityInput.placeholder = cities.length ? "Type City..." : "No cities found";
+        
+        setupAutocomplete(cityInputId, cityListId, cities);
+    } catch (e) { console.error(e); }
+}
+
 loadCountries();
