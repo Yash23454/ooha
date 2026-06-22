@@ -6,7 +6,7 @@ const submitOohaBtn = document.getElementById('submit-ooha-btn');
 const lookupBtn = document.getElementById('lookup-btn');
 const resultsSection = document.getElementById('results-section');
 
-// Helper function to remove special characters/accents (e.g., Tādepalle -> Tadepalle)
+// Helper function to remove special characters/accents
 function removeAccents(str) {
     return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
@@ -29,16 +29,24 @@ submitOohaBtn.addEventListener('click', () => {
     document.getElementById('modal-form-area').classList.add('hidden');
     document.getElementById('success-message').classList.remove('hidden');
     
-    // Auto-close modal after 3 seconds and reset
+    // Auto-close modal after 3 seconds and reset everything completely
     setTimeout(() => {
         modal.classList.add('hidden');
+        
+        // Clear all inputs
         document.getElementById('target-name').value = '';
         document.getElementById('ooha-text').value = '';
         document.getElementById('modal-country').value = '';
         document.getElementById('modal-state').value = '';
         document.getElementById('modal-city').value = '';
+        
+        // Disable state and city dropdowns again
         document.getElementById('modal-state').disabled = true;
         document.getElementById('modal-city').disabled = true;
+        
+        // Reset form view for the next time they click "Leave an Ooha"
+        document.getElementById('modal-form-area').classList.remove('hidden');
+        document.getElementById('success-message').classList.add('hidden');
     }, 3000);
 });
 
@@ -75,6 +83,17 @@ lookupBtn.addEventListener('click', () => {
                 </div>
             `;
         }
+
+        // CLEAR THE INPUT FIELDS AFTER REVEALING
+        document.getElementById('search-name').value = '';
+        document.getElementById('country-input').value = '';
+        document.getElementById('state-input').value = '';
+        document.getElementById('city-input').value = '';
+        
+        // Disable state and city dropdowns again
+        document.getElementById('state-input').disabled = true;
+        document.getElementById('city-input').disabled = true;
+
     }, 1500); 
 });
 
@@ -149,7 +168,6 @@ async function loadCountries() {
         const res = await fetch(apiBase);
         if (!res.ok) throw new Error("API Server Down");
         const data = await res.json();
-        // Applied removeAccents here
         globalCountries = data.data.map(item => removeAccents(item.country));
     } catch (e) {
         console.error("Live API failed, loading backup data:", e);
@@ -190,7 +208,6 @@ async function loadStates(country, stateInputId, stateListId, childCityInputId, 
         if (!res.ok) throw new Error("States API failed");
         const data = await res.json();
         
-        // Applied removeAccents here
         const states = data.data && data.data.states ? data.data.states.map(s => removeAccents(s.name)) : [];
         stateInput.placeholder = states.length ? "Type State..." : "No states found";
         
@@ -222,7 +239,6 @@ async function loadCities(country, state, cityInputId, cityListId) {
         if (!res.ok) throw new Error("Cities API failed");
         const data = await res.json();
         
-        // Applied removeAccents here
         const cities = data.data ? data.data.map(c => removeAccents(c)) : [];
         cityInput.placeholder = cities.length ? "Type City..." : "No cities found";
         
