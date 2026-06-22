@@ -157,18 +157,17 @@ async function loadCountries() {
     document.getElementById('country-input').placeholder = "Type Country...";
     document.getElementById('modal-country').placeholder = "Type Country...";
 
-    // Setup Main Search Country
+    // FIX: Properly passing both Input ID and List ID for cities
     setupAutocomplete('country-input', 'country-list', globalCountries, (selected) => {
-        loadStates(selected, 'state-input', 'state-list', 'city-input');
+        loadStates(selected, 'state-input', 'state-list', 'city-input', 'city-list');
     });
 
-    // Setup Modal Country
     setupAutocomplete('modal-country', 'modal-country-list', globalCountries, (selected) => {
-        loadStates(selected, 'modal-state', 'modal-state-list', 'modal-city');
+        loadStates(selected, 'modal-state', 'modal-state-list', 'modal-city', 'modal-city-list');
     });
 }
 
-async function loadStates(country, stateInputId, stateListId, childCityInputId) {
+async function loadStates(country, stateInputId, stateListId, childCityInputId, childCityListId) {
     const stateInput = document.getElementById(stateInputId);
     const cityInput = document.getElementById(childCityInputId);
     
@@ -191,7 +190,7 @@ async function loadStates(country, stateInputId, stateListId, childCityInputId) 
         stateInput.placeholder = states.length ? "Type State..." : "No states found";
         
         setupAutocomplete(stateInputId, stateListId, states, (selected) => {
-            loadCities(country, selected, childCityInputId, childCityInputId.replace('-input', '-list'));
+            loadCities(country, selected, childCityInputId, childCityListId);
         });
     } catch (e) { 
         console.error(e);
