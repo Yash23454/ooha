@@ -3,61 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OOHA - The Secret Board</title>
+    <title>"OOHA" - The Secret Board</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1 class="logo-text">OOHA</h1>
-            <p class="tagline">What are they saying about you?</p>
+            <h1 class="logo-text">"OOHA"</h1>
+            <p class="tagline">Uncover the hidden thoughts...</p>
         </header>
 
         <main>
-            <!-- Search Section -->
             <div class="search-section">
                 <input type="text" id="search-name" placeholder="Enter First Name...">
-
+                
                 <div class="location-dropdowns">
-                    <!-- Dropdown 1: Country -->
-                    <input list="countries" id="country-input" placeholder="Select Country...">
+                    <input list="countries" id="country-input" placeholder="Type or Select Country...">
                     <datalist id="countries"></datalist>
 
-                    <!-- Dropdown 2: State -->
-                    <input list="states" id="state-input" placeholder="Select State..." disabled>
+                    <input list="states" id="state-input" placeholder="Type or Select State..." disabled>
                     <datalist id="states"></datalist>
 
-                    <!-- Dropdown 3: City -->
-                    <input list="cities" id="city-input" placeholder="Select City..." disabled>
+                    <input list="cities" id="city-input" placeholder="Type or Select City..." disabled>
                     <datalist id="cities"></datalist>
                 </div>
 
-                <button id="lookup-btn" class="primary-btn">Lookup</button>
+                <button id="lookup-btn" class="primary-btn">Reveal "Ooha"</button>
             </div>
 
-            <!-- Action Button -->
             <div class="action-section">
-                <button id="leave-ooha-btn" class="secondary-btn">Leave a Ooha</button>
+                <button id="leave-ooha-btn" class="secondary-btn">Leave an "Ooha"</button>
             </div>
 
-            <!-- Results Section -->
             <div id="results-section" class="results-container">
-                <!-- Search result comments will dynamically appear here -->
-            </div>
+                </div>
         </main>
     </div>
 
-    <!-- Leave a Ooha Form (Hidden Modal) -->
     <div id="ooha-modal" class="modal hidden">
         <div class="modal-content">
             <span class="close-btn" id="close-modal">&times;</span>
-            <h2>Leave a Ooha</h2>
+            <h2>Leave an "Ooha"</h2>
+            <p class="modal-subtitle">Share your secret thought about someone.</p>
             <input type="text" id="target-name" placeholder="Their First Name...">
-            <textarea id="ooha-text" rows="4" placeholder="Type your secret message here..."></textarea>
-            <button id="submit-ooha-btn" class="primary-btn">Submit Ooha</button>
+            <textarea id="ooha-text" rows="4" placeholder="Type your secret thought here..."></textarea>
+            <button id="submit-ooha-btn" class="primary-btn">Submit "Ooha"</button>
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>
