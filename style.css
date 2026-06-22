@@ -155,7 +155,9 @@ input:disabled {
 .modal.hidden {
     display: none;
 }
-
+.hidden {
+    display: none !important;
+}
 .modal-content {
     background: var(--card-bg);
     padding: 40px;
