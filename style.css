@@ -1,0 +1,205 @@
+/* Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box- sizing: border - box;
+    font - family: 'Segoe UI', Tahoma, Geneva, Verdana, sans - serif;
+}
+
+body {
+    background - color: #0a0a0a; /* Deep black background */
+    color: #e0e0e0;
+    display: flex;
+    justify - content: center;
+    align - items: center;
+    min - height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    width: 100 %;
+    max - width: 600px;
+    text - align: center;
+}
+
+/* Header & Logo */
+header {
+    margin - bottom: 40px;
+}
+
+.logo - text {
+    font - size: 4rem;
+    color: #fff;
+    /* Neon Purple Glow */
+    text - shadow: 0 0 10px #bc13fe, 0 0 20px #bc13fe, 0 0 40px #bc13fe;
+    letter - spacing: 5px;
+    margin - bottom: 10px;
+}
+
+.tagline {
+    font - size: 1.1rem;
+    color: #a0a0a0;
+    font - style: italic;
+}
+
+/* Search Section & Inputs */
+.search - section {
+    background: #161616;
+    padding: 30px;
+    border - radius: 15px;
+    box - shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+    margin - bottom: 30px;
+    border: 1px solid #2a2a2a;
+}
+
+.location - dropdowns {
+    display: flex;
+    flex - direction: column;
+    gap: 15px;
+    margin - bottom: 15px;
+}
+
+input[type = "text"], textarea {
+    width: 100 %;
+    padding: 15px;
+    margin - bottom: 15px;
+    background: #222;
+    border: 1px solid #333;
+    color: #fff;
+    border - radius: 8px;
+    font - size: 1rem;
+    outline: none;
+    transition: border - color 0.3s ease, box - shadow 0.3s ease;
+}
+
+    input[type = "text"]: focus, textarea:focus {
+        border - color: #00f3ff; /* Neon Cyan Border on Focus */
+        box - shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+    }
+
+input:disabled {
+    background: #111;
+    color: #555;
+    cursor: not - allowed;
+}
+
+/* Buttons */
+.primary - btn, .secondary - btn {
+    width: 100 %;
+    padding: 15px;
+    border: none;
+    border - radius: 8px;
+    font - size: 1.1rem;
+    font - weight: bold;
+    cursor: pointer;
+    transition: transform 0.2s ease, box - shadow 0.2s ease;
+}
+
+.primary - btn {
+    /* Purple to Cyan Gradient */
+    background: linear - gradient(45deg, #bc13fe, #00f3ff);
+    color: #fff;
+    margin - top: 10px;
+}
+
+    .primary - btn:hover {
+        transform: translateY(-2px);
+        box - shadow: 0 5px 15px rgba(188, 19, 254, 0.4);
+    }
+
+.secondary - btn {
+    background: transparent;
+    color: #00f3ff;
+    border: 2px solid #00f3ff;
+}
+
+    .secondary - btn:hover {
+        background: rgba(0, 243, 255, 0.1);
+        box - shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+    }
+
+/* Leave a Ooha Modal (Hidden by default) */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100 %;
+    height: 100 %;
+    background: rgba(0, 0, 0, 0.85); /* Dark overlay */
+    display: flex;
+    justify - content: center;
+    align - items: center;
+    z - index: 1000;
+}
+
+    .modal.hidden {
+        display: none;
+    }
+
+    .modal - content {
+        background: #161616;
+        padding: 40px;
+        border - radius: 15px;
+        width: 90 %;
+        max - width: 500px;
+        position: relative;
+        border: 1px solid #bc13fe;
+        box - shadow: 0 0 25px rgba(188, 19, 254, 0.2);
+    }
+
+        .modal - content h2 {
+            margin - bottom: 20px;
+            color: #bc13fe;
+        }
+
+.close - btn {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font - size: 1.8rem;
+    color: #777;
+    cursor: pointer;
+    transition: color 0.3s;
+}
+
+    .close - btn:hover {
+        color: #ff0055; /* Red color on hover to close */
+    }
+
+/* Results Display Area */
+.results - container {
+    margin - top: 30px;
+    text - align: left;
+    max - height: 400px;
+    overflow - y: auto;
+}
+
+.ooha - card {
+    background: #1a1a1a;
+    padding: 20px;
+    border - left: 4px solid #00f3ff; /* Cyan accent line */
+    border - radius: 8px;
+    margin - bottom: 15px;
+    box - shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    color: #ccc;
+    font - size: 1.05rem;
+    line - height: 1.5;
+}
+
+/* Scrollbar styling for a cleaner look */
+:: -webkit - scrollbar {
+    width: 8px;
+}
+
+    :: -webkit - scrollbar - track {
+        background: #0a0a0a;
+    }
+
+    :: -webkit - scrollbar - thumb {
+        background: #333;
+        border - radius: 4px;
+    }
+
+        :: -webkit - scrollbar - thumb:hover {
+            background: #bc13fe;
+        }
