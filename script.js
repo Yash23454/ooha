@@ -20,31 +20,37 @@ leaveOohaBtn.addEventListener('click', () => {
 closeModalBtn.addEventListener('click', () => modal.classList.add('hidden'));
 
 submitOohaBtn.addEventListener('click', () => {
-    // Basic validation
     if(document.getElementById('target-name').value.trim() === '' || document.getElementById('ooha-text').value.trim() === '') {
         alert("Name and your 'Ooha' are required!");
         return;
     }
-    // Show nice acknowledgement (Hides form, shows success text)
+    
     document.getElementById('modal-form-area').classList.add('hidden');
     document.getElementById('success-message').classList.remove('hidden');
     
-    // Auto-close modal after 3 seconds and reset everything completely
     setTimeout(() => {
         modal.classList.add('hidden');
         
-        // Clear all inputs
         document.getElementById('target-name').value = '';
         document.getElementById('ooha-text').value = '';
-        document.getElementById('modal-country').value = '';
-        document.getElementById('modal-state').value = '';
-        document.getElementById('modal-city').value = '';
         
-        // Disable state and city dropdowns again
-        document.getElementById('modal-state').disabled = true;
-        document.getElementById('modal-city').disabled = true;
+        const mCountry = document.getElementById('modal-country');
+        if(mCountry) mCountry.value = '';
         
-        // Reset form view for the next time they click "Leave an Ooha"
+        const mState = document.getElementById('modal-state');
+        if(mState) {
+            mState.value = '';
+            mState.disabled = true;
+            mState.placeholder = "Select Country First...";
+        }
+        
+        const mCity = document.getElementById('modal-city');
+        if(mCity) {
+            mCity.value = '';
+            mCity.disabled = true;
+            mCity.placeholder = "Select State First...";
+        }
+        
         document.getElementById('modal-form-area').classList.remove('hidden');
         document.getElementById('success-message').classList.add('hidden');
     }, 3000);
@@ -52,7 +58,8 @@ submitOohaBtn.addEventListener('click', () => {
 
 // --- REVEAL "OOHA" DUMMY LOGIC (Provocative) ---
 lookupBtn.addEventListener('click', () => {
-    const name = document.getElementById('search-name').value.trim().toLowerCase();
+    const nameInput = document.getElementById('search-name');
+    const name = nameInput.value.trim().toLowerCase();
     
     if(!name) {
         alert("Enter a name to reveal their secrets!");
@@ -65,7 +72,6 @@ lookupBtn.addEventListener('click', () => {
     setTimeout(() => {
         lookupBtn.innerText = "Reveal \"Ooha\"";
         
-        // Dummy data check 
         if(name === 'yash') {
             resultsSection.innerHTML = `
                 <div class="ooha-card" style="background: var(--card-bg); padding: 20px; border-left: 3px solid var(--gold-primary); border-radius: 8px; margin-top: 20px; text-align: left;">
@@ -74,7 +80,6 @@ lookupBtn.addEventListener('click', () => {
                 </div>
             `;
         } else {
-            // Provocative Empty State
             resultsSection.innerHTML = `
                 <div class="provocative-msg" style="margin-top: 20px;">
                     <p>Looks like your board is completely silent.</p>
@@ -84,15 +89,25 @@ lookupBtn.addEventListener('click', () => {
             `;
         }
 
-        // CLEAR THE INPUT FIELDS AFTER REVEALING
-        document.getElementById('search-name').value = '';
-        document.getElementById('country-input').value = '';
-        document.getElementById('state-input').value = '';
-        document.getElementById('city-input').value = '';
+        // FORCE CLEAR MAIN SEARCH INPUTS
+        nameInput.value = '';
         
-        // Disable state and city dropdowns again
-        document.getElementById('state-input').disabled = true;
-        document.getElementById('city-input').disabled = true;
+        const cInput = document.getElementById('country-input');
+        if(cInput) cInput.value = '';
+        
+        const sInput = document.getElementById('state-input');
+        if(sInput) {
+            sInput.value = '';
+            sInput.disabled = true;
+            sInput.placeholder = "Select Country First...";
+        }
+        
+        const cityInp = document.getElementById('city-input');
+        if(cityInp) {
+            cityInp.value = '';
+            cityInp.disabled = true;
+            cityInp.placeholder = "Select State First...";
+        }
 
     }, 1500); 
 });
