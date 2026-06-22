@@ -49,11 +49,11 @@ lookupBtn.addEventListener('click', () => {
         lookupBtn.innerText = "Reveal \"Ooha\"";
         
         // Dummy data check 
-        if(name === 'yash' && (city === 'iowa city' || city === '')) {
+        if(name === 'yash') {
             resultsSection.innerHTML = `
                 <div class="ooha-card" style="background: var(--card-bg); padding: 20px; border-left: 3px solid var(--gold-primary); border-radius: 8px; margin-top: 20px; text-align: left;">
                     <p style="color: #ccc; font-style: italic;">"He's secretly a genius when it comes to network routing... and he has a great taste in web design."</p>
-                    <small style="color: var(--text-muted); display: block; margin-top: 10px;">- Left from somewhere in the US</small>
+                    <small style="color: var(--text-muted); display: block; margin-top: 10px;">- Left from somewhere in the world</small>
                 </div>
             `;
         } else {
@@ -137,27 +137,35 @@ document.addEventListener('click', function (e) {
 let globalCountries = [];
 
 async function loadCountries() {
+    document.getElementById('country-input').placeholder = "Loading...";
+    document.getElementById('modal-country').placeholder = "Loading...";
+    
     try {
         const res = await fetch(apiBase);
+        if (!res.ok) throw new Error("API Server Down");
         const data = await res.json();
         globalCountries = data.data.map(item => item.country);
-        
-        document.getElementById('country-input').placeholder = "Type Country...";
-        document.getElementById('modal-country').placeholder = "Type Country...";
-
-        // Setup Main Search Country
-        setupAutocomplete('country-input', 'country-list', globalCountries, (selected) => {
-            loadStates(selected, 'state-input', 'state-list', 'city-input');
-        });
-
-        // Setup Modal Country
-        setupAutocomplete('modal-country', 'modal-country-list', globalCountries, (selected) => {
-            loadStates(selected, 'modal-state', 'modal-state-list', 'modal-city');
-        });
-
     } catch (e) {
-        console.error(e);
+        console.error("Live API failed, loading backup data:", e);
+        // Fallback safety net
+        globalCountries = [
+            "India", "United States", "United Kingdom", "Australia", 
+            "Canada", "Germany", "United Arab Emirates", "Singapore", "New Zealand"
+        ];
     }
+
+    document.getElementById('country-input').placeholder = "Type Country...";
+    document.getElementById('modal-country').placeholder = "Type Country...";
+
+    // Setup Main Search Country
+    setupAutocomplete('country-input', 'country-list', globalCountries, (selected) => {
+        loadStates(selected, 'state-input', 'state-list', 'city-input');
+    });
+
+    // Setup Modal Country
+    setupAutocomplete('modal-country', 'modal-country-list', globalCountries, (selected) => {
+        loadStates(selected, 'modal-state', 'modal-state-list', 'modal-city');
+    });
 }
 
 async function loadStates(country, stateInputId, stateListId, childCityInputId) {
@@ -176,6 +184,7 @@ async function loadStates(country, stateInputId, stateListId, childCityInputId) 
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ country: country })
         });
+        if (!res.ok) throw new Error("States API failed");
         const data = await res.json();
         
         const states = data.data && data.data.states ? data.data.states.map(s => s.name) : [];
@@ -184,7 +193,14 @@ async function loadStates(country, stateInputId, stateListId, childCityInputId) 
         setupAutocomplete(stateInputId, stateListId, states, (selected) => {
             loadCities(country, selected, childCityInputId, childCityInputId.replace('-input', '-list'));
         });
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+        console.error(e);
+        stateInput.placeholder = "Type State Manually...";
+        setupAutocomplete(stateInputId, stateListId, [], () => {
+            cityInput.disabled = false;
+            cityInput.placeholder = "Type City Manually...";
+        });
+    }
 }
 
 async function loadCities(country, state, cityInputId, cityListId) {
@@ -199,13 +215,19 @@ async function loadCities(country, state, cityInputId, cityListId) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ country: country, state: state })
         });
+        if (!res.ok) throw new Error("Cities API failed");
         const data = await res.json();
         
         const cities = data.data || [];
         cityInput.placeholder = cities.length ? "Type City..." : "No cities found";
         
         setupAutocomplete(cityInputId, cityListId, cities);
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+        console.error(e);
+        cityInput.placeholder = "Type City Manually...";
+        setupAutocomplete(cityInputId, cityListId, []);
+    }
 }
 
+// Initialize the app by fetching countries
 loadCountries();
