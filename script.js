@@ -44,10 +44,10 @@ async function checkProfanity(text) {
         console.error("Profanity API Error", e);
     }
 
-    // Layer 2: Regional/Desi Bad Words Filter (You can add more words here)
+    // Layer 2: Regional/Desi Bad Words Filter
     const regionalBadWords = ["lanja", "puku", "modda", "dengu", "gudda", "madarchod", "bhenchod", "chutiya", "randi", "gandu"];
     
-    // Removing spaces and special characters to catch sneaky spellings (e.g., "p u k u")
+    // Removing spaces and special characters to catch sneaky spellings
     const lowerText = text.toLowerCase().replace(/[^a-z0-9]/g, '');
     
     return regionalBadWords.some(word => lowerText.includes(word));
@@ -90,7 +90,7 @@ async function setupDynamicTicker() {
             ticker.style.opacity = 0;
             setTimeout(() => ticker.classList.add('hidden'), 500); 
         }, 5000); // Stays visible for 5 seconds
-    }, 25000); // 25 seconds wait time makes it look 100% organic and real
+    }, 25000); // 25 seconds wait time
 }
 setupDynamicTicker();
 
@@ -99,7 +99,7 @@ window.shareToApp = function(platform, targetName) {
     const url = window.location.href;
     const text = `Someone just dropped a Top Secret about ${targetName.toUpperCase()} on OOHA! Do you have the guts to check your vault? 👀👇`;
     
-    // NATIVE SHARE FOR MOBILE (Auto-detects phone and opens IG/Snapchat/WhatsApp menus directly)
+    // NATIVE SHARE FOR MOBILE
     if (navigator.share && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
         navigator.share({
             title: 'OOHA Secret Vault',
@@ -167,7 +167,7 @@ submitOohaBtn.addEventListener('click', async () => {
     const isVulgar = await checkProfanity(oohaText);
     
     if (isVulgar) {
-        alert("⚠️ ALERT: Offensive or vulgar language detected. Please keep your Ooha clean and respectful!");
+        alert("Oops! 🙊 We love juicy secrets, but let's keep the vibe classy. The vault rejects toxic words. Phrase it differently! ✨");
         submitOohaBtn.innerText = originalBtnText;
         submitOohaBtn.disabled = false;
         return; // Stops submission
