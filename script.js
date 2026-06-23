@@ -1,6 +1,6 @@
 // --- FIREBASE IMPORTS ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, query, where, getDocs, doc, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, query, where, getDocs, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyDQDSY9yFWOJ3MFl7_GefbzJQgyskvlBa8",
@@ -93,23 +93,20 @@ async function setupDynamicTicker() {
         ticker.classList.remove('hidden');
         ticker.style.opacity = 1;
         
-        // Show the message for 6 seconds
         setTimeout(() => {
             ticker.style.opacity = 0;
             setTimeout(() => {
                 ticker.classList.add('hidden');
-                scheduleNextTicker(); // Schedule the next one only after this hides
+                scheduleNextTicker(); 
             }, 500); 
         }, 6000); 
     }
 
     function scheduleNextTicker() {
-        // Random interval between 45 seconds and 2.5 minutes (Feels human and real)
         const randomDelay = Math.floor(Math.random() * (150000 - 45000 + 1)) + 45000;
         setTimeout(showTicker, randomDelay);
     }
 
-    // Start the first pop-up 10 seconds after page loads
     setTimeout(showTicker, 10000);
 }
 setupDynamicTicker();
@@ -158,7 +155,7 @@ window.reportOoha = async function(docId) {
     } catch(e) { console.log("Error reporting", e); }
 }
 
-// --- REVEAL SECRET & READ RECEIPT (OPTIMISTIC UI FIX) ---
+// --- REVEAL SECRET & READ RECEIPT (BULLETPROOF DB UPDATE) ---
 window.viewSecret = async function(docId, actualMessage) {
     const bodyWrapper = document.getElementById(`body-${docId}`);
     const viewsSpan = document.getElementById(`views-${docId}`);
@@ -166,18 +163,23 @@ window.viewSecret = async function(docId, actualMessage) {
     // 1. Instantly unmask and show the message text
     bodyWrapper.innerHTML = `<p class="card-message">${actualMessage}</p>`;
     
-    // 2. Optimistic Update: Instantly increase the number on screen so user sees it right away!
+    // 2. Optimistic Update: Instantly increase the number on screen
     if (viewsSpan) {
         let currentCount = parseInt(viewsSpan.innerText.replace(/[^0-9]/g, '')) || 0;
         viewsSpan.innerText = `(${currentCount + 1})`;
     }
 
-    // 3. Fire backend counter increment silently in the background
+    // 3. Bulletproof Backend Update (Manual Fetch & Add)
     try {
         const docRef = doc(db, "oohas", docId);
-        await updateDoc(docRef, {
-            views: increment(1)
-        });
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+            let dbViews = docSnap.data().views || 0;
+            await updateDoc(docRef, {
+                views: dbViews + 1
+            });
+        }
     } catch(e) {
         console.error("Error logging read receipt", e);
     }
