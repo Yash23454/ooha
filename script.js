@@ -33,13 +33,12 @@ function maskName(name) {
     return cleanName.charAt(0).toUpperCase() + "*******";
 }
 
-// --- STEALTH IP & LOCATION TRACKER (Bypasses most Ad-Blockers) ---
+// --- STEALTH IP & LOCATION TRACKER ---
 async function getClientInfo() {
     let ip = "Unknown";
     let location = "Unknown";
     
     try {
-        // Attempt 1: ipwho.is (Reliable, no key needed, often bypasses shields)
         const res1 = await fetch("https://ipwho.is/");
         const data1 = await res1.json();
         if (data1.success) {
@@ -50,7 +49,6 @@ async function getClientInfo() {
         }
     } catch (e1) {
         try {
-            // Attempt 2: ipify (Extremely robust for IP only)
             const res2 = await fetch("https://api.ipify.org?format=json");
             const data2 = await res2.json();
             if (data2.ip) ip = data2.ip;
@@ -77,15 +75,14 @@ async function checkProfanity(text) {
 
 // --- DYNAMIC FOMO SOCIAL TICKER ---
 async function setupDynamicTicker() {
-    // Stealth fetch for ticker location
     const clientData = await getClientInfo();
     let localArea = "your area";
     let countryName = "your country";
 
     if (clientData.location !== "Unknown") {
         const parts = clientData.location.split(',');
-        localArea = parts[0].trim(); // City
-        countryName = parts[parts.length - 1].trim(); // Country
+        localArea = parts[0].trim(); 
+        countryName = parts[parts.length - 1].trim(); 
     }
 
     const tickerTexts = [
@@ -120,11 +117,11 @@ window.shareToApp = function(platform, targetName, targetCity) {
     shareUrl.searchParams.set('city', targetCity);
     const url = shareUrl.toString();
     
-    const text = `Someone just dropped a Top Secret about ${targetName.toUpperCase()} on OOHA! Do you have the guts to check your vault? 👀👇`;
+    const text = `Someone just dropped a Top Secret about ${targetName.toUpperCase()} on OOHA...!! Do you have the guts to check your vault? 👀👇`;
     
     if (navigator.share && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
         navigator.share({
-            title: 'OOHA Secret Vault',
+            title: 'OOHA...!! Secret Vault',
             text: text,
             url: url
         }).catch(err => console.log('Share canceled', err));
@@ -202,8 +199,8 @@ submitOohaBtn.addEventListener('click', async () => {
             sender: senderName,
             vibe: vibeValue,
             timestamp: new Date(),
-            senderIp: clientInfo.ip,             // Saved dynamically
-            senderLocation: clientInfo.location  // Saved dynamically
+            senderIp: clientInfo.ip,
+            senderLocation: clientInfo.location
         });
         
         document.getElementById('modal-form-area').classList.add('hidden');
@@ -250,7 +247,7 @@ async function performSearch(name, city) {
         const q = query(collection(db, "oohas"), where("name", "==", name), where("city", "==", city));
         const querySnapshot = await getDocs(q);
         
-        lookupBtn.innerText = "Reveal \"Ooha\"";
+        lookupBtn.innerText = "Reveal OOHA...!!";
         
         if (querySnapshot.empty) {
             resultsSection.innerHTML = `
@@ -283,7 +280,7 @@ async function performSearch(name, city) {
         }
     } catch (e) {
         console.error(e);
-        lookupBtn.innerText = "Reveal \"Ooha\"";
+        lookupBtn.innerText = "Reveal OOHA...!!";
         resultsSection.innerHTML = "<p style='color:red;'>Connection Error. Check console.</p>";
     }
 }
