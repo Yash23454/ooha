@@ -136,12 +136,12 @@ window.reportOoha = async function(docId) {
         if (docSnap.exists()) {
             let currentReports = docSnap.data().reports || 0;
             currentReports += 1;
-            let shouldHide = currentReports >= 3; // Hide if 3 or more reports
+            let shouldHide = currentReports >= 3; 
             
             await updateDoc(docRef, { reports: currentReports, isHidden: shouldHide });
             
             alert("🚩 Report submitted. Thank you for keeping OOHA...!! safe.");
-            if (shouldHide) location.reload(); // Refresh to hide the message
+            if (shouldHide) location.reload(); 
         }
     } catch(e) {
         console.log("Error reporting", e);
@@ -243,7 +243,6 @@ submitOohaBtn.addEventListener('click', async () => {
     // Filter 2 & 3: IP Blacklist and Rate Limiting
     try {
         if (clientInfo.ip !== "Unknown") {
-            // Check Blacklist
             const banQ = query(collection(db, "banned_ips"), where("ip", "==", clientInfo.ip));
             const banSnap = await getDocs(banQ);
             if (!banSnap.empty) {
@@ -253,7 +252,6 @@ submitOohaBtn.addEventListener('click', async () => {
                 return;
             }
 
-            // Check Velocity (Rate Limit)
             const rateQ = query(collection(db, "oohas"), where("senderIp", "==", clientInfo.ip));
             const rateSnap = await getDocs(rateQ);
             let recentPosts = 0;
@@ -285,7 +283,7 @@ submitOohaBtn.addEventListener('click', async () => {
             senderIp: clientInfo.ip,
             senderLocation: clientInfo.location,
             isDestructing: isDestructing,
-            reports: 0, // Initialize reporting count
+            reports: 0, 
             isHidden: false
         });
         
@@ -319,13 +317,10 @@ async function performSearch(name, city) {
     lookupBtn.innerText = "Accessing the vault...";
     resultsSection.innerHTML = "";
     
-    const newUrl = new URL(window.location.origin + window.location.pathname);
-    newUrl.searchParams.set('name', name);
-    newUrl.searchParams.set('city', city);
-    window.history.pushState({}, '', newUrl);
+    // BUG FIX: Removed 'window.history.pushState' so the address bar stays clean during normal search!
 
     try {
-        const q = query(collection(db, "oohas"), where("name", "==", name), where("city", "==", city), where("isHidden", "==", false)); // Filter out reported posts
+        const q = query(collection(db, "oohas"), where("name", "==", name), where("city", "==", city), where("isHidden", "==", false));
         const querySnapshot = await getDocs(q);
         
         lookupBtn.innerText = "Reveal OOHA...!!";
@@ -341,7 +336,6 @@ async function performSearch(name, city) {
         } else {
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
-                // Check if hidden (just in case query didn't catch it)
                 if(data.isHidden) return;
 
                 const displayCity = data.city.charAt(0).toUpperCase() + data.city.slice(1);
@@ -385,7 +379,6 @@ async function performSearch(name, city) {
         }
     } catch (e) {
         console.error(e);
-        // Fallback if index error occurs for isHidden
         lookupBtn.innerText = "Reveal OOHA...!!";
         resultsSection.innerHTML = "<p style='color:var(--text-muted);'>Vault opened. If you see this message, the backend is optimizing. Please try again in a few minutes.</p>";
     }
@@ -402,7 +395,6 @@ lookupBtn.addEventListener('click', () => {
 
     performSearch(name, city);
     
-    // Explicitly reset all fields immediately after search
     nameInput.value = '';
     
     const countryInput = document.getElementById('country-input');
@@ -419,11 +411,16 @@ lookupBtn.addEventListener('click', () => {
     cityInput.placeholder = "Select State First...";
 });
 
+// --- AUTO-TRIGGER ON PAGE LOAD (FOR SHARED LINKS) ---
 window.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const urlName = urlParams.get('name');
     const urlCity = urlParams.get('city');
-    if (urlName && urlCity) { performSearch(urlName.toLowerCase(), urlCity.toLowerCase()); }
+    if (urlName && urlCity) { 
+        performSearch(urlName.toLowerCase(), urlCity.toLowerCase()); 
+        // BUG FIX: Clears the URL immediately so refreshing gives a clean page!
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
 });
 
 const apiBase = "https://countriesnow.space/api/v0.1/countries";
