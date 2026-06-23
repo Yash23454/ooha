@@ -63,38 +63,54 @@ async function checkProfanity(text) {
     return regionalBadWords.some(word => lowerText.includes(word));
 }
 
+// --- DYNAMIC TICKER (ORGANIC & RANDOMIZED) ---
 async function setupDynamicTicker() {
     const clientData = await getClientInfo();
-    let localArea = "your area";
-    let countryName = "your country";
+    let localArea = "someone";
+    let regionName = "your area";
 
     if (clientData.location !== "Unknown") {
         const parts = clientData.location.split(',');
         localArea = parts[0].trim(); 
-        countryName = parts[parts.length - 1].trim(); 
+        if(parts.length > 1) regionName = parts[1].trim(); 
     }
 
     const tickerTexts = [
         `🔥 A secret was just dropped near ${localArea}...`,
-        `👁️ Someone is checking their vault in ${countryName}...`,
+        `👁️ Someone is checking their vault in ${regionName}...`,
         `🖤 A Secret Admirer confessed near ${localArea}...`,
         `🐍 A Betrayal was revealed nearby...`,
-        `👑 Someone earned respect in ${countryName}...`
+        `👑 Someone earned respect in ${regionName}...`,
+        `💬 A new OOHA...!! was just unlocked near ${localArea}...`
     ];
 
     const ticker = document.getElementById('social-ticker');
     if (!ticker) return;
     
-    setInterval(() => {
+    function showTicker() {
         const randomText = tickerTexts[Math.floor(Math.random() * tickerTexts.length)];
         ticker.innerText = randomText;
         ticker.classList.remove('hidden');
         ticker.style.opacity = 1;
+        
+        // Show the message for 6 seconds
         setTimeout(() => {
             ticker.style.opacity = 0;
-            setTimeout(() => ticker.classList.add('hidden'), 500); 
-        }, 5000); 
-    }, 25000); 
+            setTimeout(() => {
+                ticker.classList.add('hidden');
+                scheduleNextTicker(); // Schedule the next one only after this hides
+            }, 500); 
+        }, 6000); 
+    }
+
+    function scheduleNextTicker() {
+        // Random interval between 45 seconds and 2.5 minutes (Feels human and real)
+        const randomDelay = Math.floor(Math.random() * (150000 - 45000 + 1)) + 45000;
+        setTimeout(showTicker, randomDelay);
+    }
+
+    // Start the first pop-up 10 seconds after page loads
+    setTimeout(showTicker, 10000);
 }
 setupDynamicTicker();
 
@@ -142,27 +158,26 @@ window.reportOoha = async function(docId) {
     } catch(e) { console.log("Error reporting", e); }
 }
 
-// --- REVEAL SECRET AND INCREMENT READ RECEIPT ---
+// --- REVEAL SECRET & READ RECEIPT (OPTIMISTIC UI FIX) ---
 window.viewSecret = async function(docId, actualMessage) {
     const bodyWrapper = document.getElementById(`body-${docId}`);
     const viewsSpan = document.getElementById(`views-${docId}`);
     
-    // 1. Instantly unmask and show the message text for clean UX
+    // 1. Instantly unmask and show the message text
     bodyWrapper.innerHTML = `<p class="card-message">${actualMessage}</p>`;
     
-    // 2. Fire backend counter increment silently
+    // 2. Optimistic Update: Instantly increase the number on screen so user sees it right away!
+    if (viewsSpan) {
+        let currentCount = parseInt(viewsSpan.innerText.replace(/[^0-9]/g, '')) || 0;
+        viewsSpan.innerText = `(${currentCount + 1})`;
+    }
+
+    // 3. Fire backend counter increment silently in the background
     try {
         const docRef = doc(db, "oohas", docId);
         await updateDoc(docRef, {
             views: increment(1)
         });
-        
-        // 3. Fetch fresh snap to update live counter bracket
-        const freshSnap = await getDoc(docRef);
-        if (freshSnap.exists()) {
-            const currentViews = freshSnap.data().views || 1;
-            viewsSpan.innerText = `(${currentViews})`;
-        }
     } catch(e) {
         console.error("Error logging read receipt", e);
     }
@@ -374,12 +389,10 @@ async function performSearch(name, city) {
 
                 const safeMessage = data.message.replace(/'/g, "\\'");
                 
-                // Masking block generation
                 let cardBodyHtml = '';
                 if (isAlreadyExpired) {
                     cardBodyHtml = '<span class="destructed-msg">💥 This OOHA...!! has self-destructed.</span>';
                 } else {
-                    // Injecting the Reveal Mask Button
                     cardBodyHtml = `
                         <button class="reveal-secret-btn" onclick="viewSecret('${doc.id}', '${safeMessage}')">
                             👁️ Click to Reveal Hidden Thought
