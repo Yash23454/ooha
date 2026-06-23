@@ -19,15 +19,21 @@
             <section class="search-section">
                 <input type="text" id="search-name" placeholder="Enter First Name...">
                 
-                <div class="location-dropdowns autocomplete-wrapper">
-                    <input type="text" id="country-input" placeholder="Loading...">
-                    <div id="country-list" class="autocomplete-list"></div>
+                <div class="location-dropdowns">
+                    <div class="autocomplete-wrapper">
+                        <input type="text" id="country-input" placeholder="Loading...">
+                        <div id="country-list" class="autocomplete-list"></div>
+                    </div>
                     
-                    <input type="text" id="state-input" placeholder="Select Country First..." disabled>
-                    <div id="state-list" class="autocomplete-list"></div>
+                    <div class="autocomplete-wrapper">
+                        <input type="text" id="state-input" placeholder="Select Country First..." disabled>
+                        <div id="state-list" class="autocomplete-list"></div>
+                    </div>
                     
-                    <input type="text" id="city-input" placeholder="Select State First..." disabled>
-                    <div id="city-list" class="autocomplete-list"></div>
+                    <div class="autocomplete-wrapper">
+                        <input type="text" id="city-input" placeholder="Select State First..." disabled>
+                        <div id="city-list" class="autocomplete-list"></div>
+                    </div>
                 </div>
 
                 <button id="lookup-btn" class="primary-btn">Reveal "Ooha"</button>
