@@ -15,7 +15,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// --- DOM ELEMENTS ---
 const leaveOohaBtn = document.getElementById('leave-ooha-btn');
 const closeModalBtn = document.getElementById('close-modal');
 const modal = document.getElementById('ooha-modal');
@@ -23,7 +22,6 @@ const submitOohaBtn = document.getElementById('submit-ooha-btn');
 const lookupBtn = document.getElementById('lookup-btn');
 const resultsSection = document.getElementById('results-section');
 
-// --- HELPER FUNCTIONS ---
 function removeAccents(str) { return str.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
 
 function maskName(name) {
@@ -33,19 +31,14 @@ function maskName(name) {
     return cleanName.charAt(0).toUpperCase() + "*******";
 }
 
-// --- STEALTH IP & LOCATION TRACKER ---
 async function getClientInfo() {
     let ip = "Unknown";
     let location = "Unknown";
-    
     try {
         const res1 = await fetch("https://ipwho.is/");
         const data1 = await res1.json();
         if (data1.success) {
-            return { 
-                ip: data1.ip, 
-                location: `${data1.city}, ${data1.region}, ${data1.country}` 
-            };
+            return { ip: data1.ip, location: `${data1.city}, ${data1.region}, ${data1.country}` };
         }
     } catch (e1) {
         try {
@@ -59,21 +52,17 @@ async function getClientInfo() {
     return { ip, location };
 }
 
-// --- TWO-LAYER PROFANITY FILTER ---
 async function checkProfanity(text) {
     try {
         const res = await fetch(`https://www.purgomalum.com/service/containsprofanity?text=${encodeURIComponent(text)}`);
         const isProfane = await res.text();
         if (isProfane === 'true') return true;
-    } catch (e) {
-        console.error("Profanity API Error", e);
-    }
+    } catch (e) { console.error("Profanity API Error", e); }
     const regionalBadWords = ["lanja", "puku", "modda", "dengu", "gudda", "madarchod", "bhenchod", "chutiya", "randi", "gandu"];
     const lowerText = text.toLowerCase().replace(/[^a-z0-9]/g, '');
     return regionalBadWords.some(word => lowerText.includes(word));
 }
 
-// --- DYNAMIC FOMO SOCIAL TICKER ---
 async function setupDynamicTicker() {
     const clientData = await getClientInfo();
     let localArea = "your area";
@@ -101,7 +90,6 @@ async function setupDynamicTicker() {
         ticker.innerText = randomText;
         ticker.classList.remove('hidden');
         ticker.style.opacity = 1;
-        
         setTimeout(() => {
             ticker.style.opacity = 0;
             setTimeout(() => ticker.classList.add('hidden'), 500); 
@@ -110,7 +98,33 @@ async function setupDynamicTicker() {
 }
 setupDynamicTicker();
 
-// --- MULTI-PLATFORM VIRAL SHARE LOGIC (DEEP LINKING) ---
+// --- IMAGE GENERATOR FOR IG STORY ---
+window.exportStoryImage = function(message, vibe, city) {
+    const container = document.getElementById('export-container');
+    container.innerHTML = `
+        <div class="story-export-card" id="story-card-element">
+            <div style="color: #d4af37; font-size: 0.9rem; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 2px;">
+                Top Secret ${vibe ? ' | ' + vibe : ''}
+            </div>
+            <p style="font-size: 1.6rem; font-style: italic; line-height: 1.5; margin-bottom: 25px;">"${message}"</p>
+            <div style="font-size: 0.9rem; color: #888c96;">📍 Hidden in ${city}</div>
+            <div class="story-watermark">Get yours at ooha.vercel.app</div>
+        </div>
+    `;
+
+    html2canvas(document.getElementById('story-card-element'), {
+        backgroundColor: null,
+        scale: 3 // High resolution for stories
+    }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = 'My-OOHA-Story.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        container.innerHTML = ''; // Cleanup
+        alert("📸 Image saved! You can now upload it to your Instagram or Snapchat Story.");
+    });
+}
+
 window.shareToApp = function(platform, targetName, targetCity) {
     const shareUrl = new URL(window.location.origin + window.location.pathname);
     shareUrl.searchParams.set('name', targetName);
@@ -120,11 +134,7 @@ window.shareToApp = function(platform, targetName, targetCity) {
     const text = `Someone just dropped a Top Secret about ${targetName.toUpperCase()} on OOHA...!! Do you have the guts to check your vault? 👀👇`;
     
     if (navigator.share && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-        navigator.share({
-            title: 'OOHA...!! Secret Vault',
-            text: text,
-            url: url
-        }).catch(err => console.log('Share canceled', err));
+        navigator.share({ title: 'OOHA...!! Secret Vault', text: text, url: url }).catch(err => console.log('Share canceled', err));
         return;
     } 
     
@@ -135,9 +145,7 @@ window.shareToApp = function(platform, targetName, targetCity) {
     } else if (platform === 'Instagram') {
         navigator.clipboard.writeText(`${text} \n\nLink: ${url}`).then(() => {
             alert("🔥 Text and Link Copied! Open Instagram and paste it into your Story or DM.");
-        }).catch(err => {
-            alert("Copy your browser link and paste it on Instagram to dare your friends!");
-        });
+        }).catch(err => { alert("Copy your browser link and paste it on Instagram to dare your friends!"); });
     }
 }
 
@@ -151,7 +159,27 @@ function getShareButtonsHtml(name, city) {
     `;
 }
 
-// --- MODAL LOGIC ---
+// --- TIMER LOOP ---
+setInterval(() => {
+    document.querySelectorAll('.timer-badge').forEach(badge => {
+        const expires = parseInt(badge.getAttribute('data-expires'));
+        const now = new Date().getTime();
+        const diff = expires - now;
+        
+        if (diff <= 0) {
+            const card = badge.closest('.ooha-card-premium');
+            card.querySelector('.card-message').innerHTML = '<span class="destructed-msg">💥 This OOHA...!! has self-destructed.</span>';
+            badge.innerText = "Destructed";
+            badge.classList.remove('timer-badge');
+        } else {
+            const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const s = Math.floor((diff % (1000 * 60)) / 1000);
+            badge.innerText = `⏱️ ${h}h ${m}m ${s}s left`;
+        }
+    });
+}, 1000);
+
 leaveOohaBtn.addEventListener('click', () => {
     document.getElementById('modal-form-area').classList.remove('hidden');
     document.getElementById('success-message').classList.add('hidden');
@@ -159,7 +187,6 @@ leaveOohaBtn.addEventListener('click', () => {
 });
 closeModalBtn.addEventListener('click', () => modal.classList.add('hidden'));
 
-// --- SUBMIT OOHA (WITH SECURE TRACKING) ---
 submitOohaBtn.addEventListener('click', async () => {
     const targetName = document.getElementById('target-name').value.trim().toLowerCase();
     const oohaText = document.getElementById('ooha-text').value.trim();
@@ -168,17 +195,17 @@ submitOohaBtn.addEventListener('click', async () => {
     const senderName = senderInput ? senderInput.value.trim() : "Anonymous";
     const vibeSelect = document.getElementById('vibe-select');
     const vibeValue = vibeSelect ? vibeSelect.value : "";
+    
+    // Checkbox reading
+    const destructCheck = document.getElementById('self-destruct-check');
+    const isDestructing = destructCheck ? destructCheck.checked : false;
 
-    if (!targetName || !oohaText || !city) {
-        alert("Please fill all required details!");
-        return;
-    }
+    if (!targetName || !oohaText || !city) { alert("Please fill all required details!"); return; }
 
     const originalBtnText = submitOohaBtn.innerText;
     submitOohaBtn.innerText = "Verifying Security...";
     submitOohaBtn.disabled = true;
 
-    // 1. Check Profanity
     const isVulgar = await checkProfanity(oohaText);
     if (isVulgar) {
         alert("Oops! 🙊 We love juicy secrets, but let's keep the vibe classy. The vault rejects toxic words. Phrase it differently! ✨");
@@ -187,10 +214,8 @@ submitOohaBtn.addEventListener('click', async () => {
         return; 
     }
 
-    // 2. Fetch Stealth IP & Location
     const clientInfo = await getClientInfo();
 
-    // 3. Save to Firebase
     try {
         await addDoc(collection(db, "oohas"), {
             name: targetName,
@@ -200,7 +225,8 @@ submitOohaBtn.addEventListener('click', async () => {
             vibe: vibeValue,
             timestamp: new Date(),
             senderIp: clientInfo.ip,
-            senderLocation: clientInfo.location
+            senderLocation: clientInfo.location,
+            isDestructing: isDestructing // Saving logic
         });
         
         document.getElementById('modal-form-area').classList.add('hidden');
@@ -212,6 +238,7 @@ submitOohaBtn.addEventListener('click', async () => {
             document.getElementById('ooha-text').value = '';
             if(senderInput) senderInput.value = '';
             if(vibeSelect) vibeSelect.value = '';
+            if(destructCheck) destructCheck.checked = false;
             
             document.getElementById('modal-country').value = '';
             document.getElementById('modal-country').placeholder = "Select Country...";
@@ -225,15 +252,9 @@ submitOohaBtn.addEventListener('click', async () => {
             document.getElementById('modal-form-area').classList.remove('hidden');
             document.getElementById('success-message').classList.add('hidden');
         }, 2000);
-    } catch (e) { 
-        console.error(e); 
-    } finally {
-        submitOohaBtn.innerText = originalBtnText;
-        submitOohaBtn.disabled = false;
-    }
+    } catch (e) { console.error(e); } finally { submitOohaBtn.innerText = originalBtnText; submitOohaBtn.disabled = false; }
 });
 
-// --- CORE REUSABLE SEARCH LOGIC ---
 async function performSearch(name, city) {
     lookupBtn.innerText = "Accessing the vault...";
     resultsSection.innerHTML = "";
@@ -263,16 +284,36 @@ async function performSearch(name, city) {
                 const displayCity = data.city.charAt(0).toUpperCase() + data.city.slice(1);
                 const maskedSender = maskName(data.sender);
                 const vibeHtml = data.vibe ? `<span class="vibe-badge">${data.vibe}</span>` : '';
+                
+                // Timer calculations
+                let timerHtml = '';
+                let displayMessage = `"${data.message}"`;
+                
+                if (data.isDestructing && data.timestamp) {
+                    const docTime = data.timestamp.toDate().getTime();
+                    const expiresTime = docTime + (24 * 60 * 60 * 1000); // 24 hours
+                    const now = new Date().getTime();
+                    
+                    if (now >= expiresTime) {
+                        displayMessage = '<span class="destructed-msg">💥 This OOHA...!! has self-destructed.</span>';
+                    } else {
+                        timerHtml = `<span class="timer-badge" data-expires="${expiresTime}">⏱️ Calculating...</span>`;
+                    }
+                }
+
+                // Escaping single quotes for JS function call
+                const safeMessage = data.message.replace(/'/g, "\\'");
 
                 resultsSection.innerHTML += `
                     <div class="ooha-card-premium">
                         ${vibeHtml}
-                        <div class="card-header">Top Secret</div>
-                        <p class="card-message">"${data.message}"</p>
+                        <div class="card-header">Top Secret ${timerHtml}</div>
+                        <p class="card-message">${displayMessage}</p>
                         <div class="card-footer">
                             <span style="color: var(--gold-hover);">Left by ${maskedSender}</span> <br>
                             Hidden in ${displayCity}
                         </div>
+                        <button class="export-btn" onclick="exportStoryImage('${safeMessage}', '${data.vibe || ''}', '${displayCity}')">📸 Save for IG Story</button>
                     </div>
                 `;
             });
@@ -285,40 +326,22 @@ async function performSearch(name, city) {
     }
 }
 
-// --- BUTTON CLICK EVENT ---
 lookupBtn.addEventListener('click', () => {
     const nameInput = document.getElementById('search-name');
     const name = nameInput.value.trim().toLowerCase();
     const cityInput = document.getElementById('city-input');
     const city = cityInput.value.trim().toLowerCase();
-    
     if (!name || !city) { alert("Enter Name and City!"); return; }
-
     performSearch(name, city);
-    
-    nameInput.value = '';
-    document.getElementById('country-input').value = '';
-    document.getElementById('country-input').placeholder = "Select Country...";
-    document.getElementById('state-input').value = '';
-    document.getElementById('state-input').disabled = true;
-    document.getElementById('state-input').placeholder = "Select Country First...";
-    cityInput.value = '';
-    cityInput.disabled = true;
-    cityInput.placeholder = "Select State First...";
 });
 
-// --- AUTO-TRIGGER ON PAGE LOAD ---
 window.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const urlName = urlParams.get('name');
     const urlCity = urlParams.get('city');
-
-    if (urlName && urlCity) {
-        performSearch(urlName.toLowerCase(), urlCity.toLowerCase());
-    }
+    if (urlName && urlCity) { performSearch(urlName.toLowerCase(), urlCity.toLowerCase()); }
 });
 
-// --- AUTOCOMPLETE LOGIC ---
 const apiBase = "https://countriesnow.space/api/v0.1/countries";
 
 function setupAutocomplete(inputId, listId, dataArray, onSelectCallback) {
@@ -326,7 +349,6 @@ function setupAutocomplete(inputId, listId, dataArray, onSelectCallback) {
     const list = document.getElementById(listId);
     const newInput = input.cloneNode(true);
     input.parentNode.replaceChild(newInput, input);
-
     newInput.addEventListener('input', function() {
         list.innerHTML = '';
         const val = this.value;
@@ -348,7 +370,6 @@ function setupAutocomplete(inputId, listId, dataArray, onSelectCallback) {
     });
 }
 
-// --- FETCH LOCATIONS ---
 async function loadCountries() {
     document.getElementById('country-input').placeholder = "Select Country...";
     document.getElementById('modal-country').placeholder = "Select Country...";
