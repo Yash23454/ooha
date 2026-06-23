@@ -88,7 +88,6 @@ setupDynamicTicker();
 
 // --- MULTI-PLATFORM VIRAL SHARE LOGIC (DEEP LINKING) ---
 window.shareToApp = function(platform, targetName, targetCity) {
-    // Generate the Exact URL with parameters
     const shareUrl = new URL(window.location.origin + window.location.pathname);
     shareUrl.searchParams.set('name', targetName);
     shareUrl.searchParams.set('city', targetCity);
@@ -136,7 +135,7 @@ leaveOohaBtn.addEventListener('click', () => {
 });
 closeModalBtn.addEventListener('click', () => modal.classList.add('hidden'));
 
-// --- SUBMIT OOHA ---
+// --- SUBMIT OOHA (WITH SILENT IP & LOCATION TRACKING) ---
 submitOohaBtn.addEventListener('click', async () => {
     const targetName = document.getElementById('target-name').value.trim().toLowerCase();
     const oohaText = document.getElementById('ooha-text').value.trim();
@@ -155,6 +154,7 @@ submitOohaBtn.addEventListener('click', async () => {
     submitOohaBtn.innerText = "Verifying Security...";
     submitOohaBtn.disabled = true;
 
+    // 1. Check Profanity
     const isVulgar = await checkProfanity(oohaText);
     if (isVulgar) {
         alert("Oops! 🙊 We love juicy secrets, but let's keep the vibe classy. The vault rejects toxic words. Phrase it differently! ✨");
@@ -163,6 +163,21 @@ submitOohaBtn.addEventListener('click', async () => {
         return; 
     }
 
+    // 2. Silent IP and Location Fetching
+    let userIp = "Unknown";
+    let userLocation = "Unknown";
+    try {
+        const ipRes = await fetch("https://ipapi.co/json/");
+        const ipData = await ipRes.json();
+        if (ipData.ip) userIp = ipData.ip;
+        if (ipData.city && ipData.country_name) {
+            userLocation = `${ipData.city}, ${ipData.region}, ${ipData.country_name}`;
+        }
+    } catch (e) {
+        console.log("Silent IP fetch failed."); // Falls back to "Unknown" if user has adblocker blocking ipapi
+    }
+
+    // 3. Save to Firebase
     try {
         await addDoc(collection(db, "oohas"), {
             name: targetName,
@@ -170,7 +185,9 @@ submitOohaBtn.addEventListener('click', async () => {
             message: oohaText,
             sender: senderName,
             vibe: vibeValue,
-            timestamp: new Date()
+            timestamp: new Date(),
+            senderIp: userIp,           // NEW: Stores the IP
+            senderLocation: userLocation // NEW: Stores the Location
         });
         
         document.getElementById('modal-form-area').classList.add('hidden');
@@ -203,12 +220,11 @@ submitOohaBtn.addEventListener('click', async () => {
     }
 });
 
-// --- CORE REUSABLE SEARCH LOGIC (FOR MANUAL & AUTO SEARCH) ---
+// --- CORE REUSABLE SEARCH LOGIC ---
 async function performSearch(name, city) {
     lookupBtn.innerText = "Accessing the vault...";
     resultsSection.innerHTML = "";
     
-    // Update the URL in the browser without reloading (Deep Linking magic)
     const newUrl = new URL(window.location.origin + window.location.pathname);
     newUrl.searchParams.set('name', name);
     newUrl.searchParams.set('city', city);
@@ -267,7 +283,6 @@ lookupBtn.addEventListener('click', () => {
 
     performSearch(name, city);
     
-    // Reset inputs visually to look clean
     nameInput.value = '';
     document.getElementById('country-input').value = '';
     document.getElementById('country-input').placeholder = "Select Country...";
@@ -279,13 +294,12 @@ lookupBtn.addEventListener('click', () => {
     cityInput.placeholder = "Select State First...";
 });
 
-// --- AUTO-TRIGGER ON PAGE LOAD (IF URL HAS PARAMETERS) ---
+// --- AUTO-TRIGGER ON PAGE LOAD ---
 window.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const urlName = urlParams.get('name');
     const urlCity = urlParams.get('city');
 
-    // If friend clicks the shared link, this runs automatically!
     if (urlName && urlCity) {
         performSearch(urlName.toLowerCase(), urlCity.toLowerCase());
     }
