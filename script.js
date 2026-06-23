@@ -33,6 +33,34 @@ function maskName(name) {
     return cleanName.charAt(0).toUpperCase() + "*******";
 }
 
+// --- STEALTH IP & LOCATION TRACKER (Bypasses most Ad-Blockers) ---
+async function getClientInfo() {
+    let ip = "Unknown";
+    let location = "Unknown";
+    
+    try {
+        // Attempt 1: ipwho.is (Reliable, no key needed, often bypasses shields)
+        const res1 = await fetch("https://ipwho.is/");
+        const data1 = await res1.json();
+        if (data1.success) {
+            return { 
+                ip: data1.ip, 
+                location: `${data1.city}, ${data1.region}, ${data1.country}` 
+            };
+        }
+    } catch (e1) {
+        try {
+            // Attempt 2: ipify (Extremely robust for IP only)
+            const res2 = await fetch("https://api.ipify.org?format=json");
+            const data2 = await res2.json();
+            if (data2.ip) ip = data2.ip;
+        } catch (e2) {
+            console.log("Client has strict tracking protection enabled.");
+        }
+    }
+    return { ip, location };
+}
+
 // --- TWO-LAYER PROFANITY FILTER ---
 async function checkProfanity(text) {
     try {
@@ -49,16 +77,15 @@ async function checkProfanity(text) {
 
 // --- DYNAMIC FOMO SOCIAL TICKER ---
 async function setupDynamicTicker() {
+    // Stealth fetch for ticker location
+    const clientData = await getClientInfo();
     let localArea = "your area";
     let countryName = "your country";
 
-    try {
-        const locRes = await fetch("https://ipapi.co/json/");
-        const locData = await locRes.json();
-        if (locData.city) localArea = locData.city;
-        if (locData.country_name) countryName = locData.country_name;
-    } catch (e) {
-        console.log("Could not fetch location.");
+    if (clientData.location !== "Unknown") {
+        const parts = clientData.location.split(',');
+        localArea = parts[0].trim(); // City
+        countryName = parts[parts.length - 1].trim(); // Country
     }
 
     const tickerTexts = [
@@ -135,7 +162,7 @@ leaveOohaBtn.addEventListener('click', () => {
 });
 closeModalBtn.addEventListener('click', () => modal.classList.add('hidden'));
 
-// --- SUBMIT OOHA (WITH SILENT IP & LOCATION TRACKING) ---
+// --- SUBMIT OOHA (WITH SECURE TRACKING) ---
 submitOohaBtn.addEventListener('click', async () => {
     const targetName = document.getElementById('target-name').value.trim().toLowerCase();
     const oohaText = document.getElementById('ooha-text').value.trim();
@@ -163,19 +190,8 @@ submitOohaBtn.addEventListener('click', async () => {
         return; 
     }
 
-    // 2. Silent IP and Location Fetching
-    let userIp = "Unknown";
-    let userLocation = "Unknown";
-    try {
-        const ipRes = await fetch("https://ipapi.co/json/");
-        const ipData = await ipRes.json();
-        if (ipData.ip) userIp = ipData.ip;
-        if (ipData.city && ipData.country_name) {
-            userLocation = `${ipData.city}, ${ipData.region}, ${ipData.country_name}`;
-        }
-    } catch (e) {
-        console.log("Silent IP fetch failed."); // Falls back to "Unknown" if user has adblocker blocking ipapi
-    }
+    // 2. Fetch Stealth IP & Location
+    const clientInfo = await getClientInfo();
 
     // 3. Save to Firebase
     try {
@@ -186,8 +202,8 @@ submitOohaBtn.addEventListener('click', async () => {
             sender: senderName,
             vibe: vibeValue,
             timestamp: new Date(),
-            senderIp: userIp,           // NEW: Stores the IP
-            senderLocation: userLocation // NEW: Stores the Location
+            senderIp: clientInfo.ip,             // Saved dynamically
+            senderLocation: clientInfo.location  // Saved dynamically
         });
         
         document.getElementById('modal-form-area').classList.add('hidden');
