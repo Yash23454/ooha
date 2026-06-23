@@ -1,6 +1,6 @@
 // --- FIREBASE IMPORTS ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, query, where, getDocs, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, query, where, getDocs, doc, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyDQDSY9yFWOJ3MFl7_GefbzJQgyskvlBa8",
@@ -125,26 +125,46 @@ window.exportStoryImage = function(message, vibe, city) {
     });
 }
 
-// --- REPORT OOHA SYSTEM (Tier 2 Anti-Spam) ---
+// --- REPORT OOHA SYSTEM ---
 window.reportOoha = async function(docId) {
     if (!confirm("Are you sure you want to report this message for abusive content?")) return;
-    
     try {
         const docRef = doc(db, "oohas", docId);
         const docSnap = await getDoc(docRef);
-        
         if (docSnap.exists()) {
             let currentReports = docSnap.data().reports || 0;
             currentReports += 1;
             let shouldHide = currentReports >= 3; 
-            
             await updateDoc(docRef, { reports: currentReports, isHidden: shouldHide });
-            
             alert("🚩 Report submitted. Thank you for keeping OOHA...!! safe.");
             if (shouldHide) location.reload(); 
         }
+    } catch(e) { console.log("Error reporting", e); }
+}
+
+// --- REVEAL SECRET AND INCREMENT READ RECEIPT ---
+window.viewSecret = async function(docId, actualMessage) {
+    const bodyWrapper = document.getElementById(`body-${docId}`);
+    const viewsSpan = document.getElementById(`views-${docId}`);
+    
+    // 1. Instantly unmask and show the message text for clean UX
+    bodyWrapper.innerHTML = `<p class="card-message">${actualMessage}</p>`;
+    
+    // 2. Fire backend counter increment silently
+    try {
+        const docRef = doc(db, "oohas", docId);
+        await updateDoc(docRef, {
+            views: increment(1)
+        });
+        
+        // 3. Fetch fresh snap to update live counter bracket
+        const freshSnap = await getDoc(docRef);
+        if (freshSnap.exists()) {
+            const currentViews = freshSnap.data().views || 1;
+            viewsSpan.innerText = `(${currentViews})`;
+        }
     } catch(e) {
-        console.log("Error reporting", e);
+        console.error("Error logging read receipt", e);
     }
 }
 
@@ -188,10 +208,10 @@ setInterval(() => {
         const expires = parseInt(badge.getAttribute('data-expires'));
         const now = new Date().getTime();
         const diff = expires - now;
-        
         if (diff <= 0) {
             const card = badge.closest('.ooha-card-premium');
-            card.querySelector('.card-message').innerHTML = '<span class="destructed-msg">💥 This OOHA...!! has self-destructed.</span>';
+            const bodyWrap = card.querySelector('.card-body-wrapper');
+            if (bodyWrap) bodyWrap.innerHTML = '<span class="destructed-msg">💥 This OOHA...!! has self-destructed.</span>';
             badge.innerText = "Destructed";
             badge.classList.remove('timer-badge');
         } else {
@@ -210,7 +230,7 @@ leaveOohaBtn.addEventListener('click', () => {
 });
 closeModalBtn.addEventListener('click', () => modal.classList.add('hidden'));
 
-// --- SUBMIT OOHA (WITH ANTI-SPAM ARCHITECTURE) ---
+// --- SUBMIT OOHA ---
 submitOohaBtn.addEventListener('click', async () => {
     const targetName = document.getElementById('target-name').value.trim().toLowerCase();
     const oohaText = document.getElementById('ooha-text').value.trim();
@@ -229,7 +249,6 @@ submitOohaBtn.addEventListener('click', async () => {
     submitOohaBtn.innerText = "Verifying Security...";
     submitOohaBtn.disabled = true;
 
-    // Filter 1: Profanity
     const isVulgar = await checkProfanity(oohaText);
     if (isVulgar) {
         alert("Oops! 🙊 We love juicy secrets, but let's keep the vibe classy. The vault rejects toxic words. Phrase it differently! ✨");
@@ -240,7 +259,6 @@ submitOohaBtn.addEventListener('click', async () => {
 
     const clientInfo = await getClientInfo();
 
-    // Filter 2 & 3: IP Blacklist and Rate Limiting
     try {
         if (clientInfo.ip !== "Unknown") {
             const banQ = query(collection(db, "banned_ips"), where("ip", "==", clientInfo.ip));
@@ -256,13 +274,11 @@ submitOohaBtn.addEventListener('click', async () => {
             const rateSnap = await getDocs(rateQ);
             let recentPosts = 0;
             const fiveMinsAgo = new Date().getTime() - (5 * 60 * 1000);
-            
             rateSnap.forEach(doc => {
                 if (doc.data().timestamp && doc.data().timestamp.toDate().getTime() > fiveMinsAgo) {
                     recentPosts++;
                 }
             });
-
             if (recentPosts >= 3) {
                 alert("⏳ Take a breath! You are posting too fast. Please wait a few minutes.");
                 submitOohaBtn.innerText = originalBtnText;
@@ -270,7 +286,7 @@ submitOohaBtn.addEventListener('click', async () => {
                 return;
             }
         }
-    } catch(e) { console.log("Spam check bypassed due to adblocker."); }
+    } catch(e) { console.log("Spam check bypassed."); }
 
     try {
         await addDoc(collection(db, "oohas"), {
@@ -284,7 +300,8 @@ submitOohaBtn.addEventListener('click', async () => {
             senderLocation: clientInfo.location,
             isDestructing: isDestructing,
             reports: 0, 
-            isHidden: false
+            isHidden: false,
+            views: 0 // Initialize Views tracking count
         });
         
         document.getElementById('modal-form-area').classList.add('hidden');
@@ -316,8 +333,6 @@ submitOohaBtn.addEventListener('click', async () => {
 async function performSearch(name, city) {
     lookupBtn.innerText = "Accessing the vault...";
     resultsSection.innerHTML = "";
-    
-    // BUG FIX: Removed 'window.history.pushState' so the address bar stays clean during normal search!
 
     try {
         const q = query(collection(db, "oohas"), where("name", "==", name), where("city", "==", city), where("isHidden", "==", false));
@@ -341,29 +356,44 @@ async function performSearch(name, city) {
                 const displayCity = data.city.charAt(0).toUpperCase() + data.city.slice(1);
                 const maskedSender = maskName(data.sender);
                 const vibeHtml = data.vibe ? `<span class="vibe-badge">${data.vibe}</span>` : '';
+                const initialViews = data.views || 0;
                 
                 let timerHtml = '';
-                let displayMessage = `"${data.message}"`;
+                let isAlreadyExpired = false;
                 
                 if (data.isDestructing && data.timestamp) {
                     const docTime = data.timestamp.toDate().getTime();
                     const expiresTime = docTime + (24 * 60 * 60 * 1000); 
                     const now = new Date().getTime();
-                    
                     if (now >= expiresTime) {
-                        displayMessage = '<span class="destructed-msg">💥 This OOHA...!! has self-destructed.</span>';
+                        isAlreadyExpired = true;
                     } else {
                         timerHtml = `<span class="timer-badge" data-expires="${expiresTime}">⏱️ Calculating...</span>`;
                     }
                 }
 
                 const safeMessage = data.message.replace(/'/g, "\\'");
+                
+                // Masking block generation
+                let cardBodyHtml = '';
+                if (isAlreadyExpired) {
+                    cardBodyHtml = '<span class="destructed-msg">💥 This OOHA...!! has self-destructed.</span>';
+                } else {
+                    // Injecting the Reveal Mask Button
+                    cardBodyHtml = `
+                        <button class="reveal-secret-btn" onclick="viewSecret('${doc.id}', '${safeMessage}')">
+                            👁️ Click to Reveal Hidden Thought
+                        </button>
+                    `;
+                }
 
                 resultsSection.innerHTML += `
-                    <div class="ooha-card-premium">
+                    <div class="ooha-card-premium" id="card-${doc.id}">
                         ${vibeHtml}
-                        <div class="card-header">Top Secret ${timerHtml}</div>
-                        <p class="card-message">${displayMessage}</p>
+                        <div class="card-header">Top Secret <span class="view-count-bracket" id="views-${doc.id}">(${initialViews})</span> ${timerHtml}</div>
+                        <div class="card-body-wrapper" id="body-${doc.id}">
+                            ${cardBodyHtml}
+                        </div>
                         <div class="card-footer">
                             <span style="color: var(--gold-hover);">Left by ${maskedSender}</span> <br>
                             Hidden in ${displayCity}
@@ -380,7 +410,7 @@ async function performSearch(name, city) {
     } catch (e) {
         console.error(e);
         lookupBtn.innerText = "Reveal OOHA...!!";
-        resultsSection.innerHTML = "<p style='color:var(--text-muted);'>Vault opened. If you see this message, the backend is optimizing. Please try again in a few minutes.</p>";
+        resultsSection.innerHTML = "<p style='color:var(--text-muted);'>Vault opened. Backend optimizing, please try again.</p>";
     }
 }
 
@@ -390,41 +420,33 @@ lookupBtn.addEventListener('click', () => {
     const name = nameInput.value.trim().toLowerCase();
     const cityInput = document.getElementById('city-input');
     const city = cityInput.value.trim().toLowerCase();
-    
     if (!name || !city) { alert("Enter Name and City!"); return; }
-
     performSearch(name, city);
     
     nameInput.value = '';
-    
     const countryInput = document.getElementById('country-input');
     countryInput.value = '';
     countryInput.placeholder = "Select Country...";
-    
     const stateInput = document.getElementById('state-input');
     stateInput.value = '';
     stateInput.disabled = true;
     stateInput.placeholder = "Select Country First...";
-    
     cityInput.value = '';
     cityInput.disabled = true;
     cityInput.placeholder = "Select State First...";
 });
 
-// --- AUTO-TRIGGER ON PAGE LOAD (FOR SHARED LINKS) ---
 window.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const urlName = urlParams.get('name');
     const urlCity = urlParams.get('city');
     if (urlName && urlCity) { 
         performSearch(urlName.toLowerCase(), urlCity.toLowerCase()); 
-        // BUG FIX: Clears the URL immediately so refreshing gives a clean page!
         window.history.replaceState({}, document.title, window.location.pathname);
     }
 });
 
 const apiBase = "https://countriesnow.space/api/v0.1/countries";
-
 function setupAutocomplete(inputId, listId, dataArray, onSelectCallback) {
     const input = document.getElementById(inputId);
     const list = document.getElementById(listId);
