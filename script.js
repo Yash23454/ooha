@@ -58,11 +58,21 @@ submitOohaBtn.addEventListener('click', async () => {
         
         setTimeout(() => {
             modal.classList.add('hidden');
+            // Reset all values cleanly
             document.getElementById('target-name').value = '';
             document.getElementById('ooha-text').value = '';
+            
             document.getElementById('modal-country').value = '';
+            document.getElementById('modal-country').placeholder = "Select Country...";
+            
             document.getElementById('modal-state').value = '';
+            document.getElementById('modal-state').disabled = true;
+            document.getElementById('modal-state').placeholder = "Select Country First...";
+            
             document.getElementById('modal-city').value = '';
+            document.getElementById('modal-city').disabled = true;
+            document.getElementById('modal-city').placeholder = "Select State First...";
+            
             document.getElementById('modal-form-area').classList.remove('hidden');
             document.getElementById('success-message').classList.add('hidden');
         }, 2000);
@@ -82,7 +92,7 @@ lookupBtn.addEventListener('click', async () => {
         return;
     }
 
-    lookupBtn.innerText = "Searching...";
+    lookupBtn.innerText = "Accessing the vault...";
     resultsSection.innerHTML = "";
     
     try {
@@ -92,22 +102,46 @@ lookupBtn.addEventListener('click', async () => {
         lookupBtn.innerText = "Reveal \"Ooha\"";
         
         if (querySnapshot.empty) {
-            resultsSection.innerHTML = `<p class="provocative-msg">No "Ooha" found for ${name} in ${city}.</p>`;
+            // VIRAL PROVOCATIVE MESSAGE
+            resultsSection.innerHTML = `
+                <div class="provocative-msg">
+                    <p style="color:var(--gold-primary); font-size: 1.2rem; font-weight: bold;">The vault is completely silent for ${name.toUpperCase()}...</p>
+                    <p style="margin-top: 10px; font-size: 1rem; color: #ccc; line-height: 1.5;">Are people intimidated by you, or do they just not have the courage to say it? <br><br><span style="color: #fff;">Share your link and challenge them to break the silence. Let's see who drops the first "Ooha".</span></p>
+                </div>
+            `;
         } else {
+            // ELITE PREMIUM CARDS
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
-                resultsSection.innerHTML += `<div class="ooha-card"><p>"${data.message}"</p></div>`;
+                const displayCity = data.city.charAt(0).toUpperCase() + data.city.slice(1);
+                resultsSection.innerHTML += `
+                    <div class="ooha-card-premium">
+                        <div class="card-header">Top Secret</div>
+                        <p class="card-message">"${data.message}"</p>
+                        <div class="card-footer">Hidden in ${displayCity}</div>
+                    </div>
+                `;
             });
         }
         
-        // Reset Search Fields
+        // Reset Search Fields and Lock Dropdowns
         nameInput.value = '';
+        
         document.getElementById('country-input').value = '';
+        document.getElementById('country-input').placeholder = "Select Country...";
+        
         document.getElementById('state-input').value = '';
+        document.getElementById('state-input').disabled = true;
+        document.getElementById('state-input').placeholder = "Select Country First...";
+        
         document.getElementById('city-input').value = '';
+        document.getElementById('city-input').disabled = true;
+        document.getElementById('city-input').placeholder = "Select State First...";
+
     } catch (e) {
         console.error(e);
-        resultsSection.innerHTML = "Error fetching data.";
+        lookupBtn.innerText = "Reveal \"Ooha\"";
+        resultsSection.innerHTML = "<p style='color:red;'>Error connecting to vault. Check console.</p>";
     }
 });
 
@@ -141,8 +175,12 @@ function setupAutocomplete(inputId, listId, dataArray, onSelectCallback) {
     });
 }
 
-// --- FETCH LOCATIONS ---
+// --- FETCH LOCATIONS (WITH EXACT PLACEHOLDERS) ---
 async function loadCountries() {
+    // Ensuring exact text requested
+    document.getElementById('country-input').placeholder = "Select Country...";
+    document.getElementById('modal-country').placeholder = "Select Country...";
+    
     try {
         const res = await fetch(apiBase);
         const data = await res.json();
@@ -155,18 +193,28 @@ async function loadCountries() {
 async function loadStates(country, stateId, stateList, cityId, cityList) {
     const stateInput = document.getElementById(stateId);
     stateInput.disabled = false;
+    stateInput.placeholder = "Loading States..."; // Temporary while fetching
+    
     const res = await fetch(`${apiBase}/states`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({country})});
     const data = await res.json();
     const states = data.data.states.map(s => removeAccents(s.name));
+    
+    // Setting exact placeholder after loading
+    stateInput.placeholder = "Select State...";
     setupAutocomplete(stateId, stateList, states, (s) => loadCities(country, s, cityId, cityList));
 }
 
 async function loadCities(country, state, cityId, cityList) {
     const cityInput = document.getElementById(cityId);
     cityInput.disabled = false;
+    cityInput.placeholder = "Loading Cities..."; // Temporary while fetching
+    
     const res = await fetch(`${apiBase}/state/cities`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({country, state})});
     const data = await res.json();
     const cities = data.data.map(c => removeAccents(c));
+    
+    // Setting exact placeholder after loading
+    cityInput.placeholder = "Select City...";
     setupAutocomplete(cityId, cityList, cities);
 }
 
