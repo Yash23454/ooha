@@ -6,6 +6,7 @@
     <title>OOHA...!! - Hidden Thoughts</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:ital,wght@1,700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
 
@@ -47,6 +48,8 @@
 
     <div id="social-ticker" class="social-ticker hidden"></div>
 
+    <div id="export-container" style="position: absolute; top: -9999px; left: -9999px;"></div>
+
     <div id="ooha-modal" class="modal hidden">
         <div class="modal-content">
             <span class="close-btn" id="close-modal">&times;</span>
@@ -82,6 +85,11 @@
                         <option value="👑 Respect">👑 Respect</option>
                         <option value="👀 Just Spying">👀 Just Spying</option>
                     </select>
+                </div>
+
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="self-destruct-check">
+                    <label for="self-destruct-check">💣 Make this OOHA self-destruct in 24 hours</label>
                 </div>
 
                 <textarea id="ooha-text" rows="4" placeholder="Type your secret thought here..."></textarea>
