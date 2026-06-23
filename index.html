@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>"OOHA" - The Secret Board</title>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="./style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OOHA - Hidden Thoughts</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:ital,wght@1,700&display=swap" rel="stylesheet">
 </head>
 <body>
+
     <div class="container">
         <header>
             <h1 class="logo-text">"OOHA"</h1>
@@ -15,78 +16,78 @@
         </header>
 
         <main>
-            <!-- Search Section -->
-            <div class="search-section">
+            <section class="search-section">
                 <input type="text" id="search-name" placeholder="Enter First Name...">
                 
-                <div class="location-dropdowns">
-                    <div class="autocomplete-wrapper">
-                        <input type="text" id="country-input" placeholder="Loading Countries..." autocomplete="off">
-                        <div id="country-list" class="autocomplete-list"></div>
-                    </div>
-
-                    <div class="autocomplete-wrapper">
-                        <input type="text" id="state-input" placeholder="Select Country First..." autocomplete="off" disabled>
-                        <div id="state-list" class="autocomplete-list"></div>
-                    </div>
-
-                    <div class="autocomplete-wrapper">
-                        <input type="text" id="city-input" placeholder="Select State First..." autocomplete="off" disabled>
-                        <div id="city-list" class="autocomplete-list"></div>
-                    </div>
+                <div class="location-dropdowns autocomplete-wrapper">
+                    <input type="text" id="country-input" placeholder="Loading...">
+                    <div id="country-list" class="autocomplete-list"></div>
+                    
+                    <input type="text" id="state-input" placeholder="Select Country First..." disabled>
+                    <div id="state-list" class="autocomplete-list"></div>
+                    
+                    <input type="text" id="city-input" placeholder="Select State First..." disabled>
+                    <div id="city-list" class="autocomplete-list"></div>
                 </div>
 
                 <button id="lookup-btn" class="primary-btn">Reveal "Ooha"</button>
-            </div>
+            </section>
 
-            <!-- Action Button -->
-            <div class="action-section">
-                <button id="leave-ooha-btn" class="secondary-btn">Leave an "Ooha"</button>
-            </div>
+            <button id="leave-ooha-btn" class="secondary-btn">Leave an "Ooha"</button>
 
-            <!-- Results Section -->
-            <div id="results-section" class="results-container"></div>
+            <section id="results-section" class="results-container"></section>
         </main>
     </div>
 
-    <!-- Leave an Ooha Form (Hidden Modal) -->
+    <!-- Hidden Social Ticker (FOMO) -->
+    <div id="social-ticker" class="social-ticker hidden"></div>
+
+    <!-- Modal for Leaving an Ooha -->
     <div id="ooha-modal" class="modal hidden">
         <div class="modal-content">
             <span class="close-btn" id="close-modal">&times;</span>
-            <div class="form-group">
-             <label>Your Name/Alias (Optional)</label>
-             <input type="text" id="sender-name" placeholder="Leave blank to be completely anonymous...">
-            </div>
             <div id="modal-form-area">
                 <h2>Leave an "Ooha"</h2>
                 <p class="modal-subtitle">Share your secret thought about someone.</p>
                 
                 <input type="text" id="target-name" placeholder="Their First Name...">
                 
-                <!-- Same Location Logic for Modal -->
-                <div class="location-dropdowns">
-                    <div class="autocomplete-wrapper">
-                        <input type="text" id="modal-country" placeholder="Select Country..." autocomplete="off">
-                        <div id="modal-country-list" class="autocomplete-list"></div>
-                    </div>
-                    <div class="autocomplete-wrapper">
-                        <input type="text" id="modal-state" placeholder="Select State..." autocomplete="off" disabled>
-                        <div id="modal-state-list" class="autocomplete-list"></div>
-                    </div>
-                    <div class="autocomplete-wrapper">
-                        <input type="text" id="modal-city" placeholder="Select City..." autocomplete="off" disabled>
-                        <div id="modal-city-list" class="autocomplete-list"></div>
-                    </div>
+                <div class="form-group autocomplete-wrapper">
+                    <input type="text" id="modal-country" placeholder="Loading...">
+                    <div id="modal-country-list" class="autocomplete-list"></div>
+                </div>
+                <div class="form-group autocomplete-wrapper">
+                    <input type="text" id="modal-state" placeholder="Select Country First..." disabled>
+                    <div id="modal-state-list" class="autocomplete-list"></div>
+                </div>
+                <div class="form-group autocomplete-wrapper">
+                    <input type="text" id="modal-city" placeholder="Select State First..." disabled>
+                    <div id="modal-city-list" class="autocomplete-list"></div>
                 </div>
 
-                <textarea id="ooha-text" rows="3" placeholder="Type your secret thought here..."></textarea>
+                <div class="form-group">
+                    <input type="text" id="sender-name" placeholder="Your Name/Alias (Leave blank to hide)">
+                </div>
+
+                <!-- Vibe Check Dropdown -->
+                <div class="form-group">
+                    <select id="vibe-select" class="vibe-dropdown">
+                        <option value="" disabled selected>Select the Vibe...</option>
+                        <option value="🔥 Confession">🔥 Confession</option>
+                        <option value="🖤 Secret Admirer">🖤 Secret Admirer</option>
+                        <option value="🐍 Betrayal">🐍 Betrayal</option>
+                        <option value="👑 Respect">👑 Respect</option>
+                        <option value="👀 Just Spying">👀 Just Spying</option>
+                    </select>
+                </div>
+
+                <textarea id="ooha-text" rows="4" placeholder="Type your secret thought here..."></textarea>
                 <button id="submit-ooha-btn" class="primary-btn">Submit "Ooha"</button>
             </div>
             
-            <!-- Success Message (Hidden by default) -->
             <div id="success-message" class="hidden">
-                <h3 style="color: var(--gold-primary); margin-bottom: 10px;">"Ooha" Dropped Successfully! 🤫</h3>
-                <p style="color: var(--text-muted);">Your secret is safe with us. Let's see if they find it!</p>
+                <h2 style="color: var(--gold-primary);">Locked Away!</h2>
+                <p>Your secret is safe in the vault.</p>
             </div>
         </div>
     </div>
