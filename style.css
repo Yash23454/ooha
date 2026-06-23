@@ -15,17 +15,24 @@ header {
 
 .brand-logo-img {
     width: 100%;
-    max-width: 220px;
+    max-width: 280px; /* Logo size pencha (was 220px) */
     height: auto;
-    border-radius: 50%;
-    box-shadow: 0 10px 30px rgba(212, 175, 55, 0.15), 0 4px 10px rgba(0, 0, 0, 0.5);
-    border: 2px solid var(--border-color);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    
+    /* The Magic Trick: Crops exactly to the yellow circle, hiding the grey patch */
+    clip-path: circle(45% at 50% 50%); 
+    
+    /* Removed borders and box-shadow to make it blend seamlessly */
+    transition: transform 0.3s ease;
 }
 
 .brand-logo-img:hover {
-    transform: scale(1.03);
-    box-shadow: 0 12px 40px rgba(212, 175, 55, 0.25), 0 6px 15px rgba(0, 0, 0, 0.6);
+    transform: scale(1.05); /* Hover ayinappudu inka peddaga pop avuthundi */
+}
+
+@media (max-width: 600px) { 
+    .brand-logo-img { 
+        max-width: 220px; /* Mobile lo kuda peddaga kanipisthundi */
+    } 
 }
 
 /* --- Search & Inputs --- */
