@@ -33,20 +33,53 @@ function maskName(name) {
     return cleanName.charAt(0).toUpperCase() + "*******";
 }
 
-// --- FOMO SOCIAL TICKER (Dynamic & Realistic) ---
-const tickerTexts = [
-    "🔥 A secret was just dropped in Iowa City...",
-    "👁️ Someone is checking their vault in New York...",
-    "🖤 A Secret Admirer confessed in Chicago...",
-    "🐍 A Betrayal was revealed in Austin...",
-    "👑 Someone earned respect in London...",
-    "🔥 The vault is heating up in Los Angeles..."
-];
+// --- TWO-LAYER PROFANITY FILTER (VULGAR LANGUAGE CHECK) ---
+async function checkProfanity(text) {
+    // Layer 1: PurgoMalum API for Global/English Profanity
+    try {
+        const res = await fetch(`https://www.purgomalum.com/service/containsprofanity?text=${encodeURIComponent(text)}`);
+        const isProfane = await res.text();
+        if (isProfane === 'true') return true;
+    } catch (e) {
+        console.error("Profanity API Error", e);
+    }
 
-function runSocialTicker() {
+    // Layer 2: Regional/Desi Bad Words Filter (You can add more words here)
+    const regionalBadWords = ["lanja", "puku", "modda", "dengu", "gudda", "madarchod", "bhenchod", "chutiya", "randi", "gandu"];
+    
+    // Removing spaces and special characters to catch sneaky spellings (e.g., "p u k u")
+    const lowerText = text.toLowerCase().replace(/[^a-z0-9]/g, '');
+    
+    return regionalBadWords.some(word => lowerText.includes(word));
+}
+
+// --- DYNAMIC FOMO SOCIAL TICKER (Real Location & Natural Timing) ---
+async function setupDynamicTicker() {
+    let localArea = "your area";
+    let countryName = "your country";
+
+    // Fetch user's actual location using Free IP API
+    try {
+        const locRes = await fetch("https://ipapi.co/json/");
+        const locData = await locRes.json();
+        if (locData.city) localArea = locData.city;
+        if (locData.country_name) countryName = locData.country_name;
+    } catch (e) {
+        console.log("Could not fetch location, using defaults.");
+    }
+
+    const tickerTexts = [
+        `🔥 A secret was just dropped near ${localArea}...`,
+        `👁️ Someone is checking their vault in ${countryName}...`,
+        `🖤 A Secret Admirer confessed near ${localArea}...`,
+        `🐍 A Betrayal was revealed nearby...`,
+        `👑 Someone earned respect in ${countryName}...`
+    ];
+
     const ticker = document.getElementById('social-ticker');
     if (!ticker) return;
     
+    // Run ticker naturally (every 25 seconds instead of spamming)
     setInterval(() => {
         const randomText = tickerTexts[Math.floor(Math.random() * tickerTexts.length)];
         ticker.innerText = randomText;
@@ -56,30 +89,37 @@ function runSocialTicker() {
         setTimeout(() => {
             ticker.style.opacity = 0;
             setTimeout(() => ticker.classList.add('hidden'), 500); 
-        }, 3500); 
-    }, 7000); 
+        }, 5000); // Stays visible for 5 seconds
+    }, 25000); // 25 seconds wait time makes it look 100% organic and real
 }
-runSocialTicker();
+setupDynamicTicker();
 
 // --- MULTI-PLATFORM VIRAL SHARE LOGIC ---
 window.shareToApp = function(platform, targetName) {
     const url = window.location.href;
     const text = `Someone just dropped a Top Secret about ${targetName.toUpperCase()} on OOHA! Do you have the guts to check your vault? 👀👇`;
     
-    // NATIVE SHARE FOR MOBILE (Auto-detects phone and opens IG/Snapchat menus)
+    // NATIVE SHARE FOR MOBILE (Auto-detects phone and opens IG/Snapchat/WhatsApp menus directly)
     if (navigator.share && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
         navigator.share({
             title: 'OOHA Secret Vault',
             text: text,
             url: url
         }).catch(err => console.log('Share canceled', err));
-    } else {
-        // FALLBACK FOR DESKTOP
-        if (platform === 'fb') {
-            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
-        } else {
-            alert(`Copy your browser link and paste it on ${platform.toUpperCase()} to dare your friends!\n\nLink: ${url}`);
-        }
+        return;
+    } 
+    
+    // DIRECT LINKS FOR DESKTOP/LAPTOP
+    if (platform === 'fb') {
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, 'facebook-share-dialog', 'width=600,height=400');
+    } else if (platform === 'Snapchat') {
+        window.open(`https://www.snapchat.com/scan?attachmentUrl=${encodeURIComponent(url)}`, '_blank');
+    } else if (platform === 'Instagram') {
+        navigator.clipboard.writeText(`${text} \n\nLink: ${url}`).then(() => {
+            alert("🔥 Text and Link Copied! Open Instagram and paste it into your Story or DM.");
+        }).catch(err => {
+            alert("Copy your browser link and paste it on Instagram to dare your friends!");
+        });
     }
 }
 
@@ -101,7 +141,7 @@ leaveOohaBtn.addEventListener('click', () => {
 });
 closeModalBtn.addEventListener('click', () => modal.classList.add('hidden'));
 
-// --- SUBMIT OOHA (WITH VIBE & SENDER) ---
+// --- SUBMIT OOHA (WITH PROFANITY FILTER) ---
 submitOohaBtn.addEventListener('click', async () => {
     const targetName = document.getElementById('target-name').value.trim().toLowerCase();
     const oohaText = document.getElementById('ooha-text').value.trim();
@@ -116,6 +156,21 @@ submitOohaBtn.addEventListener('click', async () => {
     if (!targetName || !oohaText || !city) {
         alert("Please fill all required details!");
         return;
+    }
+
+    // UX: Show loading state while checking profanity
+    const originalBtnText = submitOohaBtn.innerText;
+    submitOohaBtn.innerText = "Verifying Security...";
+    submitOohaBtn.disabled = true;
+
+    // Run Profanity Filter Check
+    const isVulgar = await checkProfanity(oohaText);
+    
+    if (isVulgar) {
+        alert("⚠️ ALERT: Offensive or vulgar language detected. Please keep your Ooha clean and respectful!");
+        submitOohaBtn.innerText = originalBtnText;
+        submitOohaBtn.disabled = false;
+        return; // Stops submission
     }
 
     try {
@@ -150,7 +205,12 @@ submitOohaBtn.addEventListener('click', async () => {
             document.getElementById('modal-form-area').classList.remove('hidden');
             document.getElementById('success-message').classList.add('hidden');
         }, 2000);
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+        console.error(e); 
+    } finally {
+        submitOohaBtn.innerText = originalBtnText;
+        submitOohaBtn.disabled = false;
+    }
 });
 
 // --- LOOKUP OOHA (ELITE CARDS & VIRAL HOOK) ---
