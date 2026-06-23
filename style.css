@@ -5,10 +5,28 @@
 body { background-color: var(--bg-dark); color: var(--text-main); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; font-family: 'Inter', sans-serif; overflow-x: hidden; }
 .container { width: 100%; max-width: 550px; text-align: center; }
 
-/* --- Header --- */
-header { margin-bottom: 40px; }
-.logo-text { font-family: 'Playfair Display', serif; font-size: 4.5rem; color: var(--gold-primary); letter-spacing: 4px; margin-bottom: 8px; font-style: italic; text-shadow: 0 4px 15px rgba(212, 175, 55, 0.15); }
-.tagline { font-size: 1rem; color: var(--text-muted); letter-spacing: 1px; }
+/* --- Header (Updated for Image Logo) --- */
+header { 
+    margin-bottom: 35px; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center;
+}
+
+.brand-logo-img {
+    width: 100%;
+    max-width: 220px;
+    height: auto;
+    border-radius: 50%;
+    box-shadow: 0 10px 30px rgba(212, 175, 55, 0.15), 0 4px 10px rgba(0, 0, 0, 0.5);
+    border: 2px solid var(--border-color);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.brand-logo-img:hover {
+    transform: scale(1.03);
+    box-shadow: 0 12px 40px rgba(212, 175, 55, 0.25), 0 6px 15px rgba(0, 0, 0, 0.6);
+}
 
 /* --- Search & Inputs --- */
 .search-section { background: var(--card-bg); padding: 35px 25px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); margin-bottom: 25px; border: 1px solid var(--border-color); }
@@ -89,4 +107,9 @@ input:disabled { background: #0a0a0a; color: #333; cursor: not-allowed; border-c
 .btn-snap { background: #FFFC00; color: #000; }
 .btn-fb { background: #1877F2; }
 
-@media (max-width: 600px) { .logo-text { font-size: 3.5rem; } .search-section { padding: 25px 15px; } .social-ticker { font-size: 0.75rem; padding: 8px 15px; bottom: 15px; width: 90%; text-align: center; white-space: normal;} input[type="text"], textarea, select { font-size: 16px; padding: 14px; } }
+@media (max-width: 600px) { 
+    .brand-logo-img { max-width: 180px; } 
+    .search-section { padding: 25px 15px; } 
+    .social-ticker { font-size: 0.75rem; padding: 8px 15px; bottom: 15px; width: 90%; text-align: center; white-space: normal;} 
+    input[type="text"], textarea, select { font-size: 16px; padding: 14px; } 
+}
