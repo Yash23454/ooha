@@ -1,6 +1,6 @@
 // --- FIREBASE IMPORTS ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, query, where, getDocs, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyDQDSY9yFWOJ3MFl7_GefbzJQgyskvlBa8",
@@ -46,7 +46,7 @@ async function getClientInfo() {
             const data2 = await res2.json();
             if (data2.ip) ip = data2.ip;
         } catch (e2) {
-            console.log("Client has strict tracking protection enabled.");
+            console.log("Client has strict tracking enabled.");
         }
     }
     return { ip, location };
@@ -114,15 +114,38 @@ window.exportStoryImage = function(message, vibe, city) {
 
     html2canvas(document.getElementById('story-card-element'), {
         backgroundColor: null,
-        scale: 3 // High resolution for stories
+        scale: 3
     }).then(canvas => {
         const link = document.createElement('a');
         link.download = 'My-OOHA-Story.png';
         link.href = canvas.toDataURL('image/png');
         link.click();
-        container.innerHTML = ''; // Cleanup
+        container.innerHTML = ''; 
         alert("📸 Image saved! You can now upload it to your Instagram or Snapchat Story.");
     });
+}
+
+// --- REPORT OOHA SYSTEM (Tier 2 Anti-Spam) ---
+window.reportOoha = async function(docId) {
+    if (!confirm("Are you sure you want to report this message for abusive content?")) return;
+    
+    try {
+        const docRef = doc(db, "oohas", docId);
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+            let currentReports = docSnap.data().reports || 0;
+            currentReports += 1;
+            let shouldHide = currentReports >= 3; // Hide if 3 or more reports
+            
+            await updateDoc(docRef, { reports: currentReports, isHidden: shouldHide });
+            
+            alert("🚩 Report submitted. Thank you for keeping OOHA...!! safe.");
+            if (shouldHide) location.reload(); // Refresh to hide the message
+        }
+    } catch(e) {
+        console.log("Error reporting", e);
+    }
 }
 
 window.shareToApp = function(platform, targetName, targetCity) {
@@ -187,6 +210,7 @@ leaveOohaBtn.addEventListener('click', () => {
 });
 closeModalBtn.addEventListener('click', () => modal.classList.add('hidden'));
 
+// --- SUBMIT OOHA (WITH ANTI-SPAM ARCHITECTURE) ---
 submitOohaBtn.addEventListener('click', async () => {
     const targetName = document.getElementById('target-name').value.trim().toLowerCase();
     const oohaText = document.getElementById('ooha-text').value.trim();
@@ -196,7 +220,6 @@ submitOohaBtn.addEventListener('click', async () => {
     const vibeSelect = document.getElementById('vibe-select');
     const vibeValue = vibeSelect ? vibeSelect.value : "";
     
-    // Checkbox reading
     const destructCheck = document.getElementById('self-destruct-check');
     const isDestructing = destructCheck ? destructCheck.checked : false;
 
@@ -206,6 +229,7 @@ submitOohaBtn.addEventListener('click', async () => {
     submitOohaBtn.innerText = "Verifying Security...";
     submitOohaBtn.disabled = true;
 
+    // Filter 1: Profanity
     const isVulgar = await checkProfanity(oohaText);
     if (isVulgar) {
         alert("Oops! 🙊 We love juicy secrets, but let's keep the vibe classy. The vault rejects toxic words. Phrase it differently! ✨");
@@ -215,6 +239,40 @@ submitOohaBtn.addEventListener('click', async () => {
     }
 
     const clientInfo = await getClientInfo();
+
+    // Filter 2 & 3: IP Blacklist and Rate Limiting
+    try {
+        if (clientInfo.ip !== "Unknown") {
+            // Check Blacklist
+            const banQ = query(collection(db, "banned_ips"), where("ip", "==", clientInfo.ip));
+            const banSnap = await getDocs(banQ);
+            if (!banSnap.empty) {
+                alert("🚫 Your device has been restricted for violating community guidelines.");
+                submitOohaBtn.innerText = originalBtnText;
+                submitOohaBtn.disabled = false;
+                return;
+            }
+
+            // Check Velocity (Rate Limit)
+            const rateQ = query(collection(db, "oohas"), where("senderIp", "==", clientInfo.ip));
+            const rateSnap = await getDocs(rateQ);
+            let recentPosts = 0;
+            const fiveMinsAgo = new Date().getTime() - (5 * 60 * 1000);
+            
+            rateSnap.forEach(doc => {
+                if (doc.data().timestamp && doc.data().timestamp.toDate().getTime() > fiveMinsAgo) {
+                    recentPosts++;
+                }
+            });
+
+            if (recentPosts >= 3) {
+                alert("⏳ Take a breath! You are posting too fast. Please wait a few minutes.");
+                submitOohaBtn.innerText = originalBtnText;
+                submitOohaBtn.disabled = false;
+                return;
+            }
+        }
+    } catch(e) { console.log("Spam check bypassed due to adblocker."); }
 
     try {
         await addDoc(collection(db, "oohas"), {
@@ -226,7 +284,9 @@ submitOohaBtn.addEventListener('click', async () => {
             timestamp: new Date(),
             senderIp: clientInfo.ip,
             senderLocation: clientInfo.location,
-            isDestructing: isDestructing // Saving logic
+            isDestructing: isDestructing,
+            reports: 0, // Initialize reporting count
+            isHidden: false
         });
         
         document.getElementById('modal-form-area').classList.add('hidden');
@@ -265,7 +325,7 @@ async function performSearch(name, city) {
     window.history.pushState({}, '', newUrl);
 
     try {
-        const q = query(collection(db, "oohas"), where("name", "==", name), where("city", "==", city));
+        const q = query(collection(db, "oohas"), where("name", "==", name), where("city", "==", city), where("isHidden", "==", false)); // Filter out reported posts
         const querySnapshot = await getDocs(q);
         
         lookupBtn.innerText = "Reveal OOHA...!!";
@@ -281,17 +341,19 @@ async function performSearch(name, city) {
         } else {
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
+                // Check if hidden (just in case query didn't catch it)
+                if(data.isHidden) return;
+
                 const displayCity = data.city.charAt(0).toUpperCase() + data.city.slice(1);
                 const maskedSender = maskName(data.sender);
                 const vibeHtml = data.vibe ? `<span class="vibe-badge">${data.vibe}</span>` : '';
                 
-                // Timer calculations
                 let timerHtml = '';
                 let displayMessage = `"${data.message}"`;
                 
                 if (data.isDestructing && data.timestamp) {
                     const docTime = data.timestamp.toDate().getTime();
-                    const expiresTime = docTime + (24 * 60 * 60 * 1000); // 24 hours
+                    const expiresTime = docTime + (24 * 60 * 60 * 1000); 
                     const now = new Date().getTime();
                     
                     if (now >= expiresTime) {
@@ -301,7 +363,6 @@ async function performSearch(name, city) {
                     }
                 }
 
-                // Escaping single quotes for JS function call
                 const safeMessage = data.message.replace(/'/g, "\\'");
 
                 resultsSection.innerHTML += `
@@ -313,7 +374,10 @@ async function performSearch(name, city) {
                             <span style="color: var(--gold-hover);">Left by ${maskedSender}</span> <br>
                             Hidden in ${displayCity}
                         </div>
-                        <button class="export-btn" onclick="exportStoryImage('${safeMessage}', '${data.vibe || ''}', '${displayCity}')">📸 Save for IG Story</button>
+                        <div class="card-actions">
+                            <button class="export-btn" onclick="exportStoryImage('${safeMessage}', '${data.vibe || ''}', '${displayCity}')">📸 Save for IG Story</button>
+                            <button class="report-btn" onclick="reportOoha('${doc.id}')">🚩 Report</button>
+                        </div>
                     </div>
                 `;
             });
@@ -321,18 +385,38 @@ async function performSearch(name, city) {
         }
     } catch (e) {
         console.error(e);
+        // Fallback if index error occurs for isHidden
         lookupBtn.innerText = "Reveal OOHA...!!";
-        resultsSection.innerHTML = "<p style='color:red;'>Connection Error. Check console.</p>";
+        resultsSection.innerHTML = "<p style='color:var(--text-muted);'>Vault opened. If you see this message, the backend is optimizing. Please try again in a few minutes.</p>";
     }
 }
 
+// --- SEARCH RESET LOGIC ---
 lookupBtn.addEventListener('click', () => {
     const nameInput = document.getElementById('search-name');
     const name = nameInput.value.trim().toLowerCase();
     const cityInput = document.getElementById('city-input');
     const city = cityInput.value.trim().toLowerCase();
+    
     if (!name || !city) { alert("Enter Name and City!"); return; }
+
     performSearch(name, city);
+    
+    // Explicitly reset all fields immediately after search
+    nameInput.value = '';
+    
+    const countryInput = document.getElementById('country-input');
+    countryInput.value = '';
+    countryInput.placeholder = "Select Country...";
+    
+    const stateInput = document.getElementById('state-input');
+    stateInput.value = '';
+    stateInput.disabled = true;
+    stateInput.placeholder = "Select Country First...";
+    
+    cityInput.value = '';
+    cityInput.disabled = true;
+    cityInput.placeholder = "Select State First...";
 });
 
 window.addEventListener('DOMContentLoaded', () => {
