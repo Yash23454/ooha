@@ -23,8 +23,16 @@ const submitOohaBtn = document.getElementById('submit-ooha-btn');
 const lookupBtn = document.getElementById('lookup-btn');
 const resultsSection = document.getElementById('results-section');
 
+// --- HELPER FUNCTIONS ---
 function removeAccents(str) {
     return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function maskName(name) {
+    if (!name || name.trim() === '') return "Anonymous";
+    const cleanName = name.trim();
+    if (cleanName.length === 1) return cleanName.toUpperCase() + "*******";
+    return cleanName.charAt(0).toUpperCase() + "*******";
 }
 
 // --- MODAL LOGIC & SUCCESS ACKNOWLEDGEMENT ---
@@ -35,10 +43,15 @@ leaveOohaBtn.addEventListener('click', () => {
 });
 closeModalBtn.addEventListener('click', () => modal.classList.add('hidden'));
 
+// --- SUBMIT OOHA ---
 submitOohaBtn.addEventListener('click', async () => {
     const targetName = document.getElementById('target-name').value.trim().toLowerCase();
     const oohaText = document.getElementById('ooha-text').value.trim();
     const city = document.getElementById('modal-city').value.trim().toLowerCase();
+    
+    // Capture Sender Name (if field exists, else Anonymous)
+    const senderInput = document.getElementById('sender-name');
+    const senderName = senderInput ? senderInput.value.trim() : "Anonymous";
 
     if (!targetName || !oohaText || !city) {
         alert("Please fill all details!");
@@ -50,6 +63,7 @@ submitOohaBtn.addEventListener('click', async () => {
             name: targetName,
             city: city,
             message: oohaText,
+            sender: senderName, // Saving sender to DB for future monetization
             timestamp: new Date()
         });
         
@@ -61,6 +75,7 @@ submitOohaBtn.addEventListener('click', async () => {
             // Reset all values cleanly
             document.getElementById('target-name').value = '';
             document.getElementById('ooha-text').value = '';
+            if(senderInput) senderInput.value = '';
             
             document.getElementById('modal-country').value = '';
             document.getElementById('modal-country').placeholder = "Select Country...";
@@ -81,7 +96,7 @@ submitOohaBtn.addEventListener('click', async () => {
     }
 });
 
-// --- LOOKUP OOHA FROM FIRESTORE ---
+// --- LOOKUP OOHA (THE PREMIUM UNBOXING & VIRAL HOOK) ---
 lookupBtn.addEventListener('click', async () => {
     const nameInput = document.getElementById('search-name');
     const name = nameInput.value.trim().toLowerCase();
@@ -110,15 +125,22 @@ lookupBtn.addEventListener('click', async () => {
                 </div>
             `;
         } else {
-            // ELITE PREMIUM CARDS
+            // ELITE PREMIUM CARDS WITH MASKED NAME
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
                 const displayCity = data.city.charAt(0).toUpperCase() + data.city.slice(1);
+                
+                // Fetch and mask the sender name
+                const maskedSender = maskName(data.sender);
+
                 resultsSection.innerHTML += `
                     <div class="ooha-card-premium">
                         <div class="card-header">Top Secret</div>
                         <p class="card-message">"${data.message}"</p>
-                        <div class="card-footer">Hidden in ${displayCity}</div>
+                        <div class="card-footer">
+                            <span style="color: var(--gold-hover);">Left by ${maskedSender}</span> <br>
+                            Hidden in ${displayCity}
+                        </div>
                     </div>
                 `;
             });
@@ -177,7 +199,6 @@ function setupAutocomplete(inputId, listId, dataArray, onSelectCallback) {
 
 // --- FETCH LOCATIONS (WITH EXACT PLACEHOLDERS) ---
 async function loadCountries() {
-    // Ensuring exact text requested
     document.getElementById('country-input').placeholder = "Select Country...";
     document.getElementById('modal-country').placeholder = "Select Country...";
     
@@ -193,13 +214,12 @@ async function loadCountries() {
 async function loadStates(country, stateId, stateList, cityId, cityList) {
     const stateInput = document.getElementById(stateId);
     stateInput.disabled = false;
-    stateInput.placeholder = "Loading States..."; // Temporary while fetching
+    stateInput.placeholder = "Loading States..."; 
     
     const res = await fetch(`${apiBase}/states`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({country})});
     const data = await res.json();
     const states = data.data.states.map(s => removeAccents(s.name));
     
-    // Setting exact placeholder after loading
     stateInput.placeholder = "Select State...";
     setupAutocomplete(stateId, stateList, states, (s) => loadCities(country, s, cityId, cityList));
 }
@@ -207,13 +227,12 @@ async function loadStates(country, stateId, stateList, cityId, cityList) {
 async function loadCities(country, state, cityId, cityList) {
     const cityInput = document.getElementById(cityId);
     cityInput.disabled = false;
-    cityInput.placeholder = "Loading Cities..."; // Temporary while fetching
+    cityInput.placeholder = "Loading Cities..."; 
     
     const res = await fetch(`${apiBase}/state/cities`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({country, state})});
     const data = await res.json();
     const cities = data.data.map(c => removeAccents(c));
     
-    // Setting exact placeholder after loading
     cityInput.placeholder = "Select City...";
     setupAutocomplete(cityId, cityList, cities);
 }
