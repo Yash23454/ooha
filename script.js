@@ -33,9 +33,8 @@ function maskName(name) {
     return cleanName.charAt(0).toUpperCase() + "*******";
 }
 
-// --- TWO-LAYER PROFANITY FILTER (VULGAR LANGUAGE CHECK) ---
+// --- TWO-LAYER PROFANITY FILTER ---
 async function checkProfanity(text) {
-    // Layer 1: PurgoMalum API for Global/English Profanity
     try {
         const res = await fetch(`https://www.purgomalum.com/service/containsprofanity?text=${encodeURIComponent(text)}`);
         const isProfane = await res.text();
@@ -43,29 +42,23 @@ async function checkProfanity(text) {
     } catch (e) {
         console.error("Profanity API Error", e);
     }
-
-    // Layer 2: Regional/Desi Bad Words Filter
     const regionalBadWords = ["lanja", "puku", "modda", "dengu", "gudda", "madarchod", "bhenchod", "chutiya", "randi", "gandu"];
-    
-    // Removing spaces and special characters to catch sneaky spellings
     const lowerText = text.toLowerCase().replace(/[^a-z0-9]/g, '');
-    
     return regionalBadWords.some(word => lowerText.includes(word));
 }
 
-// --- DYNAMIC FOMO SOCIAL TICKER (Real Location & Natural Timing) ---
+// --- DYNAMIC FOMO SOCIAL TICKER ---
 async function setupDynamicTicker() {
     let localArea = "your area";
     let countryName = "your country";
 
-    // Fetch user's actual location using Free IP API
     try {
         const locRes = await fetch("https://ipapi.co/json/");
         const locData = await locRes.json();
         if (locData.city) localArea = locData.city;
         if (locData.country_name) countryName = locData.country_name;
     } catch (e) {
-        console.log("Could not fetch location, using defaults.");
+        console.log("Could not fetch location.");
     }
 
     const tickerTexts = [
@@ -79,7 +72,6 @@ async function setupDynamicTicker() {
     const ticker = document.getElementById('social-ticker');
     if (!ticker) return;
     
-    // Run ticker naturally (every 25 seconds instead of spamming)
     setInterval(() => {
         const randomText = tickerTexts[Math.floor(Math.random() * tickerTexts.length)];
         ticker.innerText = randomText;
@@ -89,17 +81,21 @@ async function setupDynamicTicker() {
         setTimeout(() => {
             ticker.style.opacity = 0;
             setTimeout(() => ticker.classList.add('hidden'), 500); 
-        }, 5000); // Stays visible for 5 seconds
-    }, 25000); // 25 seconds wait time
+        }, 5000); 
+    }, 25000); 
 }
 setupDynamicTicker();
 
-// --- MULTI-PLATFORM VIRAL SHARE LOGIC ---
-window.shareToApp = function(platform, targetName) {
-    const url = window.location.href;
+// --- MULTI-PLATFORM VIRAL SHARE LOGIC (DEEP LINKING) ---
+window.shareToApp = function(platform, targetName, targetCity) {
+    // Generate the Exact URL with parameters
+    const shareUrl = new URL(window.location.origin + window.location.pathname);
+    shareUrl.searchParams.set('name', targetName);
+    shareUrl.searchParams.set('city', targetCity);
+    const url = shareUrl.toString();
+    
     const text = `Someone just dropped a Top Secret about ${targetName.toUpperCase()} on OOHA! Do you have the guts to check your vault? 👀👇`;
     
-    // NATIVE SHARE FOR MOBILE
     if (navigator.share && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
         navigator.share({
             title: 'OOHA Secret Vault',
@@ -109,7 +105,6 @@ window.shareToApp = function(platform, targetName) {
         return;
     } 
     
-    // DIRECT LINKS FOR DESKTOP/LAPTOP
     if (platform === 'fb') {
         window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, 'facebook-share-dialog', 'width=600,height=400');
     } else if (platform === 'Snapchat') {
@@ -123,12 +118,12 @@ window.shareToApp = function(platform, targetName) {
     }
 }
 
-function getShareButtonsHtml(name) {
+function getShareButtonsHtml(name, city) {
     return `
         <div class="share-buttons-container">
-            <button class="share-btn btn-ig" onclick="shareToApp('Instagram', '${name}')">📷 Dare on Instagram Story</button>
-            <button class="share-btn btn-snap" onclick="shareToApp('Snapchat', '${name}')">👻 Snap your Friends</button>
-            <button class="share-btn btn-fb" onclick="shareToApp('fb', '${name}')">📘 Share on Facebook</button>
+            <button class="share-btn btn-ig" onclick="shareToApp('Instagram', '${name}', '${city}')">📷 Dare on Instagram Story</button>
+            <button class="share-btn btn-snap" onclick="shareToApp('Snapchat', '${name}', '${city}')">👻 Snap your Friends</button>
+            <button class="share-btn btn-fb" onclick="shareToApp('fb', '${name}', '${city}')">📘 Share on Facebook</button>
         </div>
     `;
 }
@@ -141,15 +136,13 @@ leaveOohaBtn.addEventListener('click', () => {
 });
 closeModalBtn.addEventListener('click', () => modal.classList.add('hidden'));
 
-// --- SUBMIT OOHA (WITH PROFANITY FILTER) ---
+// --- SUBMIT OOHA ---
 submitOohaBtn.addEventListener('click', async () => {
     const targetName = document.getElementById('target-name').value.trim().toLowerCase();
     const oohaText = document.getElementById('ooha-text').value.trim();
     const city = document.getElementById('modal-city').value.trim().toLowerCase();
-    
     const senderInput = document.getElementById('sender-name');
     const senderName = senderInput ? senderInput.value.trim() : "Anonymous";
-    
     const vibeSelect = document.getElementById('vibe-select');
     const vibeValue = vibeSelect ? vibeSelect.value : "";
 
@@ -158,19 +151,16 @@ submitOohaBtn.addEventListener('click', async () => {
         return;
     }
 
-    // UX: Show loading state while checking profanity
     const originalBtnText = submitOohaBtn.innerText;
     submitOohaBtn.innerText = "Verifying Security...";
     submitOohaBtn.disabled = true;
 
-    // Run Profanity Filter Check
     const isVulgar = await checkProfanity(oohaText);
-    
     if (isVulgar) {
         alert("Oops! 🙊 We love juicy secrets, but let's keep the vibe classy. The vault rejects toxic words. Phrase it differently! ✨");
         submitOohaBtn.innerText = originalBtnText;
         submitOohaBtn.disabled = false;
-        return; // Stops submission
+        return; 
     }
 
     try {
@@ -213,17 +203,17 @@ submitOohaBtn.addEventListener('click', async () => {
     }
 });
 
-// --- LOOKUP OOHA (ELITE CARDS & VIRAL HOOK) ---
-lookupBtn.addEventListener('click', async () => {
-    const nameInput = document.getElementById('search-name');
-    const name = nameInput.value.trim().toLowerCase();
-    const city = document.getElementById('city-input').value.trim().toLowerCase();
-    
-    if (!name || !city) { alert("Enter Name and City!"); return; }
-
+// --- CORE REUSABLE SEARCH LOGIC (FOR MANUAL & AUTO SEARCH) ---
+async function performSearch(name, city) {
     lookupBtn.innerText = "Accessing the vault...";
     resultsSection.innerHTML = "";
     
+    // Update the URL in the browser without reloading (Deep Linking magic)
+    const newUrl = new URL(window.location.origin + window.location.pathname);
+    newUrl.searchParams.set('name', name);
+    newUrl.searchParams.set('city', city);
+    window.history.pushState({}, '', newUrl);
+
     try {
         const q = query(collection(db, "oohas"), where("name", "==", name), where("city", "==", city));
         const querySnapshot = await getDocs(q);
@@ -235,7 +225,7 @@ lookupBtn.addEventListener('click', async () => {
                 <div class="provocative-msg">
                     <p style="color:var(--gold-primary); font-size: 1.2rem; font-weight: bold;">The vault is completely silent for ${name.toUpperCase()}...</p>
                     <p style="margin-top: 10px; font-size: 1rem; color: #ccc; line-height: 1.5;">Are people intimidated by you, or do they just not have the courage to say it?</p>
-                    ${getShareButtonsHtml(name)}
+                    ${getShareButtonsHtml(name, city)}
                 </div>
             `;
         } else {
@@ -257,24 +247,47 @@ lookupBtn.addEventListener('click', async () => {
                     </div>
                 `;
             });
-            resultsSection.innerHTML += getShareButtonsHtml(name);
+            resultsSection.innerHTML += getShareButtonsHtml(name, city);
         }
-        
-        // Reset Search Fields
-        nameInput.value = '';
-        document.getElementById('country-input').value = '';
-        document.getElementById('country-input').placeholder = "Select Country...";
-        document.getElementById('state-input').value = '';
-        document.getElementById('state-input').disabled = true;
-        document.getElementById('state-input').placeholder = "Select Country First...";
-        document.getElementById('city-input').value = '';
-        document.getElementById('city-input').disabled = true;
-        document.getElementById('city-input').placeholder = "Select State First...";
-
     } catch (e) {
         console.error(e);
         lookupBtn.innerText = "Reveal \"Ooha\"";
         resultsSection.innerHTML = "<p style='color:red;'>Connection Error. Check console.</p>";
+    }
+}
+
+// --- BUTTON CLICK EVENT ---
+lookupBtn.addEventListener('click', () => {
+    const nameInput = document.getElementById('search-name');
+    const name = nameInput.value.trim().toLowerCase();
+    const cityInput = document.getElementById('city-input');
+    const city = cityInput.value.trim().toLowerCase();
+    
+    if (!name || !city) { alert("Enter Name and City!"); return; }
+
+    performSearch(name, city);
+    
+    // Reset inputs visually to look clean
+    nameInput.value = '';
+    document.getElementById('country-input').value = '';
+    document.getElementById('country-input').placeholder = "Select Country...";
+    document.getElementById('state-input').value = '';
+    document.getElementById('state-input').disabled = true;
+    document.getElementById('state-input').placeholder = "Select Country First...";
+    cityInput.value = '';
+    cityInput.disabled = true;
+    cityInput.placeholder = "Select State First...";
+});
+
+// --- AUTO-TRIGGER ON PAGE LOAD (IF URL HAS PARAMETERS) ---
+window.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlName = urlParams.get('name');
+    const urlCity = urlParams.get('city');
+
+    // If friend clicks the shared link, this runs automatically!
+    if (urlName && urlCity) {
+        performSearch(urlName.toLowerCase(), urlCity.toLowerCase());
     }
 });
 
